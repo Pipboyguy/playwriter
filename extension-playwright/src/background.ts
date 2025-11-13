@@ -17,7 +17,7 @@
 import { RelayConnection, debugLog } from './relayConnection';
 
 // Relay URL - fixed port for MCP bridge
-const RELAY_URL = 'ws://localhost:9988';
+const RELAY_URL = 'ws://localhost:9988/extension/550e8400-e29b-41d4-a716-446655440000';
 
 class SimplifiedExtension {
   private _connection: RelayConnection | undefined;
@@ -83,12 +83,12 @@ class SimplifiedExtension {
     } catch (error: any) {
       debugLog(`Failed to connect: ${error.message}`);
       await this._updateIcon(tabId, 'disconnected');
-      
+
       // Show error notification
       chrome.action.setBadgeText({ tabId, text: '!' });
       chrome.action.setBadgeBackgroundColor({ tabId, color: '#f44336' });
       chrome.action.setTitle({ tabId, title: `Error: ${error.message}` });
-      
+
       // Clear error after 3 seconds
       setTimeout(() => {
         if (this._connectedTabId !== tabId) {
@@ -101,14 +101,14 @@ class SimplifiedExtension {
 
   private async _disconnect(): Promise<void> {
     debugLog('Disconnecting');
-    
+
     const tabId = this._connectedTabId;
-    
+
     this._connection?.close('User disconnected');
     this._connection = undefined;
-    
+
     await this._setConnectedTabId(null);
-    
+
     if (tabId) {
       await this._updateIcon(tabId, 'disconnected');
     }
@@ -133,19 +133,45 @@ class SimplifiedExtension {
     try {
       switch (state) {
         case 'connected':
-          await chrome.action.setBadgeText({ tabId, text: '✓' });
-          await chrome.action.setBadgeBackgroundColor({ tabId, color: '#4CAF50' });
+          await chrome.action.setIcon({
+            tabId,
+            path: {
+              '16': '/icons/icon-green-16.png',
+              '32': '/icons/icon-green-32.png',
+              '48': '/icons/icon-green-48.png',
+              '128': '/icons/icon-green-128.png'
+            }
+          });
+          await chrome.action.setBadgeText({ tabId, text: '' });
           await chrome.action.setTitle({ tabId, title: 'Connected - Click to disconnect' });
           break;
-        
+
         case 'connecting':
+          await chrome.action.setIcon({
+            tabId,
+            path: {
+              '16': '/icons/icon-gray-16.png',
+              '32': '/icons/icon-gray-32.png',
+              '48': '/icons/icon-gray-48.png',
+              '128': '/icons/icon-gray-128.png'
+            }
+          });
           await chrome.action.setBadgeText({ tabId, text: '...' });
           await chrome.action.setBadgeBackgroundColor({ tabId, color: '#FF9800' });
           await chrome.action.setTitle({ tabId, title: 'Connecting...' });
           break;
-        
+
         case 'disconnected':
         default:
+          await chrome.action.setIcon({
+            tabId,
+            path: {
+              '16': '/icons/icon-gray-16.png',
+              '32': '/icons/icon-gray-32.png',
+              '48': '/icons/icon-gray-48.png',
+              '128': '/icons/icon-gray-128.png'
+            }
+          });
           await chrome.action.setBadgeText({ tabId, text: '' });
           await chrome.action.setTitle({ tabId, title: 'Click to attach debugger' });
           break;
@@ -160,7 +186,7 @@ class SimplifiedExtension {
     if (this._connectedTabId !== tabId) {
       return;
     }
-    
+
     debugLog(`Connected tab ${tabId} was closed`);
     this._connection?.close('Browser tab closed');
     this._connection = undefined;

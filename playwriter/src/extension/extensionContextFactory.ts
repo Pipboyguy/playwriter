@@ -40,6 +40,8 @@ export async function createExtensionContext(abortSignal: AbortSignal, ): Promis
 
   // TODO simply call fetch. it was creatign a full fledged browser just to fetch an url previously. CRAZY
   // await cdpRelayServer.ensureExtensionConnectionForMCPContext(clientInfo, abortSignal, toolName);
+  // await waitForExtension()
+  return {}
   const browser = await playwright.chromium.connectOverCDP(cdpRelayServer.cdpEndpoint());
 
   return {

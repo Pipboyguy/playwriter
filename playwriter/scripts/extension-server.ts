@@ -5,6 +5,6 @@ async function main() {
     const { browserContext, close } = await createExtensionContext(
         controller.signal,
     )
-
-
 }
+
+main()

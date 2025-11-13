@@ -75,7 +75,7 @@ export class CDPRelayServer {
     this._wsHost = httpAddressToString(server.address()).replace(/^http/, 'ws');
 
 
-    const uuid = crypto.randomUUID();
+    const uuid = process.env.CDP_UUID || crypto.randomUUID();
     this._cdpPath = `/cdp/${uuid}`;
     this._extensionPath = `/extension/${uuid}`;
 
@@ -227,7 +227,9 @@ export class CDPRelayServer {
         if (sessionId)
           break;
         // Simulate auto-attach behavior with real target info
-        const { targetInfo } = await this._extensionConnection!.send('attachToTab', { });
+        if (!this._extensionConnection)
+          throw new Error('Extension not connected. Please ensure the Chrome extension is installed and connected to the extension endpoint before connecting Playwright.');
+        const { targetInfo } = await this._extensionConnection.send('attachToTab', { });
         this._connectedTabInfo = {
           targetInfo,
           sessionId: `pw-tab-${this._nextSessionId++}`,

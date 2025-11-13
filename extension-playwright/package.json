@@ -1,30 +1,31 @@
 {
-  "name": "@playwright/mcp-extension",
-  "version": "0.0.46",
-  "description": "Playwright MCP Browser Extension",
-  "private": true,
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/microsoft/playwright-mcp.git"
-  },
-  "homepage": "https://playwright.dev",
-  "engines": {
-    "node": ">=18"
-  },
-  "author": {
-    "name": "Microsoft Corporation"
-  },
-  "license": "Apache-2.0",
-  "scripts": {
-    "build": "tsc --project . && vite build --config vite.sw.config.mts",
-    "watch": "tsc --watch --project . & vite build --watch --config vite.sw.config.mts",
-    "test": "playwright test",
-    "clean": "rm -rf dist"
-  },
-  "devDependencies": {
-    "@types/chrome": "^0.0.315",
-    "typescript": "^5.8.2",
-    "vite": "^5.4.21",
-    "vite-plugin-static-copy": "^3.1.1"
-  }
+    "name": "@playwright/mcp-extension",
+    "version": "0.0.46",
+    "description": "Playwright MCP Browser Extension",
+    "private": true,
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/microsoft/playwright-mcp.git"
+    },
+    "homepage": "https://playwright.dev",
+    "engines": {
+        "node": ">=18"
+    },
+    "author": {
+        "name": "Microsoft Corporation"
+    },
+    "license": "Apache-2.0",
+    "scripts": {
+        "build": "tsc --project . && vite build --config vite.sw.config.mts",
+        "watch": "concurrently \"tsc --watch --project .\" \"vite build --watch --config vite.sw.config.mts\"",
+        "test": "playwright test",
+        "clean": "rm -rf dist"
+    },
+    "devDependencies": {
+        "@types/chrome": "^0.0.315",
+        "typescript": "^5.8.2",
+        "concurrently": "^8.2.2",
+        "vite": "^5.4.21",
+        "vite-plugin-static-copy": "^3.1.1"
+    }
 }
