@@ -22,6 +22,8 @@
  * - /extension/guid - Extension connection for chrome.debugger forwarding
  */
 
+ import net from 'net'
+
 import { spawn } from 'child_process';
 import http from 'http';
 
@@ -29,14 +31,13 @@ import { debug, ws, wsServer } from 'playwright-core/lib/utilsBundle';
 import { registry } from 'playwright-core/lib/server/registry/index';
 import { ManualPromise } from 'playwright-core/lib/utils';
 
-import { httpAddressToString } from '../sdk/http.js';
-import { logUnhandledError } from '../log.js';
+
 import * as protocol from './protocol.js';
 
 import type websocket from 'ws';
-import type { ClientInfo } from '../sdk/server.js';
 import type { ExtensionCommand, ExtensionEvents } from './protocol.js';
 import type { WebSocket, WebSocketServer } from 'playwright-core/lib/utilsBundle';
+import { ClientInfo } from './types.js';
 
 
 const debugLogger = debug('pw:mcp:relay');
@@ -218,6 +219,7 @@ export class CDPRelayServer {
     this._extensionConnectionPromise = new ManualPromise();
     void this._extensionConnectionPromise.catch(logUnhandledError);
   }
+
 
   private _closePlaywrightConnection(reason: string) {
     if (this._playwrightConnection?.readyState === ws.OPEN)
@@ -421,4 +423,21 @@ class ExtensionConnection {
       callback.reject(new Error('WebSocket closed'));
     this._callbacks.clear();
   }
+}
+
+
+export function httpAddressToString(address: string | net.AddressInfo | null): string {
+
+  if (!address)
+    throw new Error('Invalid null address passeds to httpAddressToString');
+  if (typeof address === 'string')
+    return address;
+  const resolvedPort = address.port;
+  let resolvedHost = address.family === 'IPv4' ? address.address : `[${address.address}]`;
+  if (resolvedHost === '0.0.0.0' || resolvedHost === '[::]')
+    resolvedHost = 'localhost';
+  return `http://${resolvedHost}:${resolvedPort}`;
+}
+function logUnhandledError(e: unknown) {
+  debugLogger('Unhandled promise rejection:', e instanceof Error ? e.stack || e.message : e);
 }

@@ -21,9 +21,9 @@ import http from 'http';
 import net from 'net'
 
 import { CDPRelayServer } from './cdpRelay.js';
+import { BrowserContextFactory, ClientInfo } from './types.js';
 
-import type { BrowserContextFactory } from '../browser/browserContextFactory.js';
-import type { ClientInfo } from '../sdk/server';
+
 
 const debugLogger = debug('pw:mcp:relay');
 
