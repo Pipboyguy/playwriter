@@ -56,7 +56,11 @@ export async function createExtensionContext(abortSignal: AbortSignal, ): Promis
 
 export async function startHttpServer(config: { host?: string, port?: number }, abortSignal?: AbortSignal): Promise<http.Server> {
   const { host, port } = config;
-  const httpServer = http.createServer();
+  const httpServer = http.createServer((req, res) => {
+    // Simple health check endpoint for extension to check if server is running
+    res.writeHead(200, { 'Content-Type': 'text/plain' });
+    res.end('OK');
+  });
   decorateServer(httpServer);
   await new Promise<void>((resolve, reject) => {
     httpServer.on('error', reject);
