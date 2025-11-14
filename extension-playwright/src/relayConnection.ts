@@ -30,6 +30,11 @@ interface AttachedTab {
   targetId: string;
   sessionId: string;
   targetInfo: Protocol.Target.TargetInfo;
+  // Cache execution contexts for this tab. When Playwright reconnects and calls Runtime.enable,
+  // Chrome's debugger does NOT re-send Runtime.executionContextCreated events for contexts that
+  // already exist. We must manually replay them so Playwright knows what contexts are available.
+  // Without this, page.evaluate() hangs because Playwright has no valid execution context IDs.
+  executionContexts: Map<number, Protocol.Runtime.ExecutionContextCreatedEvent>;
 }
 
 export class RelayConnection {
@@ -65,9 +70,9 @@ export class RelayConnection {
 
   async attachTab(tabId: number): Promise<Protocol.Target.TargetInfo> {
     const debuggee = { tabId };
-    
+
     debugLog('Attaching debugger to tab:', tabId, 'WebSocket state:', this._ws.readyState);
-    
+
     try {
       await chrome.debugger.attach(debuggee, '1.3');
       debugLog('Debugger attached successfully to tab:', tabId);
@@ -75,25 +80,26 @@ export class RelayConnection {
       debugLog('ERROR attaching debugger to tab:', tabId, error);
       throw error;
     }
-    
+
     debugLog('Sending Target.getTargetInfo command for tab:', tabId);
     const result = await chrome.debugger.sendCommand(
-      debuggee, 
+      debuggee,
       'Target.getTargetInfo'
     ) as Protocol.Target.GetTargetInfoResponse;
-    
+
     debugLog('Received targetInfo for tab:', tabId, result.targetInfo);
-    
+
     const targetInfo = result.targetInfo;
     const sessionId = `pw-tab-${this._nextSessionId++}`;
-    
+
     this._attachedTabs.set(tabId, {
       debuggee,
       targetId: targetInfo.targetId,
       sessionId,
-      targetInfo
+      targetInfo,
+      executionContexts: new Map()
     });
-    
+
     debugLog('Sending Target.attachedToTarget event, WebSocket state:', this._ws.readyState);
     this._sendMessage({
       method: 'forwardCDPEvent',
@@ -109,7 +115,7 @@ export class RelayConnection {
         }
       }
     });
-    
+
     debugLog('Tab attached successfully:', tabId, 'sessionId:', sessionId, 'targetId:', targetInfo.targetId);
     return targetInfo;
   }
@@ -117,9 +123,9 @@ export class RelayConnection {
   detachTab(tabId: number): void {
     const tab = this._attachedTabs.get(tabId);
     if (!tab) return;
-    
+
     debugLog('Detaching tab:', tabId, 'sessionId:', tab.sessionId);
-    
+
     this._sendMessage({
       method: 'forwardCDPEvent',
       params: {
@@ -130,7 +136,7 @@ export class RelayConnection {
         }
       }
     });
-    
+
     chrome.debugger.detach(tab.debuggee).catch(() => {});
     this._attachedTabs.delete(tabId);
   }
@@ -146,13 +152,13 @@ export class RelayConnection {
       debugLog('_onClose called but already closed');
       return;
     }
-    
+
     debugLog('Connection closing, attached tabs count:', this._attachedTabs.size);
     this._closed = true;
-    
+
     chrome.debugger.onEvent.removeListener(this._eventListener);
     chrome.debugger.onDetach.removeListener(this._detachListener);
-    
+
     for (const [tabId, tab] of this._attachedTabs) {
       debugLog('Detaching debugger from tab:', tabId);
       chrome.debugger.detach(tab.debuggee).catch((err) => {
@@ -160,7 +166,7 @@ export class RelayConnection {
       });
     }
     this._attachedTabs.clear();
-    
+
     debugLog('Connection closed, calling onclose callback');
     this.onclose?.();
   }
@@ -168,9 +174,25 @@ export class RelayConnection {
   private _onDebuggerEvent(source: chrome.debugger.DebuggerSession, method: string, params: any): void {
     const tab = this._attachedTabs.get(source.tabId!);
     if (!tab) return;
-    
+
+    // Track execution contexts so we can replay them when Playwright reconnects.
+    // Chrome's debugger only sends Runtime.executionContextCreated events once per context,
+    // not on every Runtime.enable call. We cache them here and replay on reconnection.
+    if (method === 'Runtime.executionContextCreated') {
+      const contextEvent = params as Protocol.Runtime.ExecutionContextCreatedEvent;
+      tab.executionContexts.set(contextEvent.context.id, contextEvent);
+      debugLog('Cached execution context:', contextEvent.context.id, 'for tab:', source.tabId, 'total contexts:', tab.executionContexts.size);
+    } else if (method === 'Runtime.executionContextDestroyed') {
+      const destroyedEvent = params as Protocol.Runtime.ExecutionContextDestroyedEvent;
+      tab.executionContexts.delete(destroyedEvent.executionContextId);
+      debugLog('Removed execution context:', destroyedEvent.executionContextId, 'from tab:', source.tabId, 'remaining:', tab.executionContexts.size);
+    } else if (method === 'Runtime.executionContextsCleared') {
+      tab.executionContexts.clear();
+      debugLog('Cleared all execution contexts for tab:', source.tabId);
+    }
+
     debugLog('Forwarding CDP event:', method, 'from tab:', source.tabId);
-    
+
     this._sendMessage({
       method: 'forwardCDPEvent',
       params: {
@@ -184,12 +206,12 @@ export class RelayConnection {
   private _onDebuggerDetach(source: chrome.debugger.Debuggee, reason: string): void {
     const tabId = source.tabId;
     debugLog('_onDebuggerDetach called for tab:', tabId, 'reason:', reason, 'isAttached:', tabId ? this._attachedTabs.has(tabId) : false);
-    
+
     if (!tabId || !this._attachedTabs.has(tabId)) {
       debugLog('Ignoring debugger detach event for untracked tab:', tabId);
       return;
     }
-    
+
     debugLog(`Debugger detached from tab ${tabId}: ${reason}`);
     this.detachTab(tabId);
   }
@@ -227,10 +249,10 @@ export class RelayConnection {
     if (message.method === 'attachToTab') {
       return {};
     }
-    
+
     if (message.method === 'forwardCDPCommand') {
       const { sessionId, method, params } = message.params;
-      
+
       if (method === 'Target.closeTarget' && params?.targetId) {
         for (const [tabId, tab] of this._attachedTabs) {
           if (tab.targetId === params.targetId) {
@@ -240,38 +262,60 @@ export class RelayConnection {
         }
         throw new Error(`Target not found: ${params.targetId}`);
       }
-      
+
       let targetTab: AttachedTab | undefined;
-      
+
       for (const [tabId, tab] of this._attachedTabs) {
         if (tab.sessionId === sessionId) {
           targetTab = tab;
           break;
         }
       }
-      
+
       if (!targetTab) {
         if (method === 'Browser.getVersion' || method === 'Target.getTargets') {
           targetTab = this._attachedTabs.values().next().value;
         }
-        
+
         if (!targetTab) {
           throw new Error(`No tab found for sessionId: ${sessionId}`);
         }
       }
-      
+
       debugLog('CDP command:', method, 'for tab:', targetTab.debuggee.tabId);
-      
+
       const debuggerSession: chrome.debugger.DebuggerSession = {
         ...targetTab.debuggee,
         sessionId: sessionId !== targetTab.sessionId ? sessionId : undefined,
       };
-      
-      return await chrome.debugger.sendCommand(
+
+      const result = await chrome.debugger.sendCommand(
         debuggerSession,
         method,
         params
       );
+
+      // When Playwright reconnects and calls Runtime.enable, Chrome does NOT automatically
+      // re-send Runtime.executionContextCreated events for contexts that already exist.
+      // This causes page.evaluate() to hang because Playwright has no execution context IDs.
+      // Solution: manually replay all cached contexts so Playwright gets fresh, valid IDs.
+      if (method === 'Runtime.enable' && targetTab.executionContexts.size > 0) {
+        debugLog('Runtime.enable called, replaying', targetTab.executionContexts.size, 'cached execution contexts for tab:', targetTab.debuggee.tabId);
+
+        for (const contextEvent of targetTab.executionContexts.values()) {
+          debugLog('Replaying execution context:', contextEvent.context.id);
+          this._sendMessage({
+            method: 'forwardCDPEvent',
+            params: {
+              sessionId: sessionId,
+              method: 'Runtime.executionContextCreated',
+              params: contextEvent,
+            },
+          });
+        }
+      }
+
+      return result;
     }
   }
 
