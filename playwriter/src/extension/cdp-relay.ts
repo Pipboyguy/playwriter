@@ -287,7 +287,7 @@ export async function startRelayServer({ port = 9988 }: { port?: number } = {}) 
             clientId
           })
         } catch (e) {
-          console.error('Error handling CDP command:', e)
+          console.error('Error handling CDP command:', method, params, e)
           sendToPlaywright({
             message: {
               id,
