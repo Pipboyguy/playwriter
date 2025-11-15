@@ -13,9 +13,7 @@ type ConnectedTarget = {
   targetInfo: Protocol.Target.TargetInfo
 }
 
-type CDPEventWithSource = CDPEvent & {
-  __serverGenerated?: boolean
-}
+
 
 type PlaywrightClient = {
   id: string

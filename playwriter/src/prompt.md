@@ -12,9 +12,9 @@ If you really want to attach listeners you should also detach them using a try f
 
 You can also create a new page via `context.newPage()` if you need to start fresh. You can then find that page by iteration over `context.pages()`:
 
-```javascript
-const page = context.pages().find((p) => p.url().includes('/some/path'))
-```
+
+`page = context.pages().find((p) => p.url().includes('/some/path'))`
+
 
 ## important rules
 

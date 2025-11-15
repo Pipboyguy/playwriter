@@ -2,7 +2,9 @@ import playwright from 'playwright-core'
 
 async function main() {
     const cdpEndpoint = `ws://localhost:9988/cdp/${Date.now()}`
-    const browser = await playwright.chromium.connectOverCDP(cdpEndpoint)
+    const browser = await playwright.chromium.connectOverCDP(cdpEndpoint, {
+
+    })
 
     const contexts = browser.contexts()
     console.log(`Found ${contexts.length} browser context(s)`)
