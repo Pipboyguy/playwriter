@@ -51,7 +51,7 @@ class SimplifiedExtension {
       if (!this._connection) {
         debugLog('No existing connection, creating new relay connection');
         debugLog('Waiting for server at http://localhost:9988...');
-        
+
         // Wait for server to be available
         while (true) {
           try {
@@ -63,11 +63,11 @@ class SimplifiedExtension {
             await new Promise(resolve => setTimeout(resolve, 1000));
           }
         }
-        
+
         debugLog('Server is ready, creating WebSocket connection to:', RELAY_URL);
         const socket = new WebSocket(RELAY_URL);
         debugLog('WebSocket created, initial readyState:', socket.readyState, '(0=CONNECTING, 1=OPEN, 2=CLOSING, 3=CLOSED)');
-        
+
         await new Promise<void>((resolve, reject) => {
           let timeoutFired = false;
           const timeout = setTimeout(() => {
@@ -78,7 +78,7 @@ class SimplifiedExtension {
             debugLog('Socket protocol:', socket.protocol);
             reject(new Error('Connection timeout'));
           }, 5000);
-          
+
           socket.onopen = () => {
             if (timeoutFired) {
               debugLog('WebSocket opened but timeout already fired!');
@@ -88,7 +88,7 @@ class SimplifiedExtension {
             clearTimeout(timeout);
             resolve();
           };
-          
+
           socket.onerror = (error) => {
             debugLog('WebSocket onerror during connection:', error);
             debugLog('Error type:', error.type);
@@ -98,7 +98,7 @@ class SimplifiedExtension {
               reject(new Error('WebSocket connection failed'));
             }
           };
-          
+
           socket.onclose = (event) => {
             debugLog('WebSocket onclose during connection setup:', {
               code: event.code,
@@ -111,7 +111,7 @@ class SimplifiedExtension {
               reject(new Error(`WebSocket closed: ${event.reason || event.code}`));
             }
           };
-          
+
           debugLog('Event handlers set, waiting for connection...');
         });
 
@@ -146,7 +146,7 @@ class SimplifiedExtension {
       const targetInfo = await this._connection.attachTab(tabId);
       debugLog('attachTab completed, storing in connectedTabs map');
       this._connectedTabs.set(tabId, targetInfo.targetId);
-      
+
       await this._updateIcon(tabId, 'connected');
       debugLog(`=== Successfully connected to tab ${tabId} ===`);
     } catch (error: any) {
@@ -170,19 +170,19 @@ class SimplifiedExtension {
 
   private async _disconnectTab(tabId: number): Promise<void> {
     debugLog(`=== Disconnecting tab ${tabId} ===`);
-    
+
     if (!this._connectedTabs.has(tabId)) {
       debugLog('Tab not in connectedTabs map, ignoring disconnect');
       return;
     }
-    
+
     debugLog('Calling detachTab on connection');
     this._connection?.detachTab(tabId);
     this._connectedTabs.delete(tabId);
     debugLog('Tab removed from connectedTabs map');
-    
+
     await this._updateIcon(tabId, 'disconnected');
-    
+
     debugLog('Connected tabs remaining:', this._connectedTabs.size);
     if (this._connectedTabs.size === 0 && this._connection) {
       debugLog('No tabs remaining, closing relay connection');
@@ -247,7 +247,7 @@ class SimplifiedExtension {
   private _onTabRemoved = async (tabId: number): Promise<void> => {
     debugLog('Tab removed event for tab:', tabId, 'is connected:', this._connectedTabs.has(tabId));
     if (!this._connectedTabs.has(tabId)) return;
-    
+
     debugLog(`Connected tab ${tabId} was closed, disconnecting`);
     await this._disconnectTab(tabId);
   };
@@ -259,4 +259,5 @@ class SimplifiedExtension {
   };
 }
 
-new SimplifiedExtension();
+// @ts-ignore
+globalThis.state = new SimplifiedExtension();
