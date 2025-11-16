@@ -81,7 +81,7 @@ async function ensureConnection(): Promise<{ browser: Browser; page: Page }> {
   return { browser, page }
 }
 
-function getCurrentPage(): Page {
+async function getCurrentPage() {
   if (state.page) {
     return state.page
   }
@@ -90,8 +90,11 @@ function getCurrentPage(): Page {
     const contexts = state.browser.contexts()
     if (contexts.length > 0) {
       const pages = contexts[0].pages()
+
       if (pages.length > 0) {
-        return pages[0]
+        const page = pages[0]
+        await page.emulateMedia({ colorScheme: null })
+        return page
       }
     }
   }
@@ -121,7 +124,7 @@ server.tool(
   async ({ code, timeout }) => {
     await ensureConnection()
 
-    const page = getCurrentPage()
+    const page = await getCurrentPage()
     const context = page.context()
 
     console.error('Executing code:', code)
@@ -185,7 +188,7 @@ server.tool(
 
       if (result !== undefined) {
         responseText += 'Return value:\n'
-        if (typeof result === "string") {
+        if (typeof result === 'string') {
           responseText += result
         } else {
           responseText += JSON.stringify(result, null, 2)
