@@ -44,7 +44,7 @@ await state.localhostPage.bringToFront();
 
 after you click a button or submit a form you ALWAYS have to then check what is the current state of the page. you cannot assume what happened after doing an action. instead run the following code to know what happened after the action:
 
-`console.log('url:', page.url()); console.log(await accessibilitySnapshot(page).then(x => x.slice(0, 1000)));`
+`console.log('url:', page.url()); console.log(await accessibilitySnapshot({ page }).then(x => x.slice(0, 1000)));`
 
 if nothing happened you may need to wait before the action completes, using something like `page.waitForNavigation({timeout: 3000})` or `await page.waitForLoadState('networkidle', {timeout: 3000})`
 
@@ -59,7 +59,10 @@ always detach event listener you create at the end of a message using `page.remo
 
 you have access to some functions in addition to playwright methods:
 
-- `async accessibilitySnapshot(page)`: gets a human readable snapshot of clickable elements on the page. useful to see the overall structure of the page and what elements you can interact with
+- `async accessibilitySnapshot({ page, searchString, contextLines })`: gets a human readable snapshot of clickable elements on the page. useful to see the overall structure of the page and what elements you can interact with.
+    - `page`: the page object to snapshot
+    - `searchString`: (optional) a string or regex to filter the snapshot. If provided, returns the first 10 matches with surrounding context
+    - `contextLines`: (optional) number of lines of context to show around each match (default: 10)
 - `async resetPlaywright()`: recreates the CDP connection and resets the browser/page/context. Use this when the MCP stops responding, you get connection errors, assertion failures, or timeout issues. After calling this, the page and context variables are automatically updated in the execution environment. IMPORTANT: this completely resets the execution context, removing any custom properties you may have added to the global scope AND clearing all keys from the `state` object. Only `page`, `context`, `state` (empty), `console`, and utility functions will remain
 
 To bring a tab to front and focus it, use the standard Playwright method `await page.bringToFront()`
@@ -87,6 +90,24 @@ Then you can use `page.locator(`aria-ref=${ref}`)` to get an element with a spec
 `const componentsLink = page.locator('aria-ref=e14').click()` 
 
 IMPORTANT: notice that we do not add any quotes in `aria-ref`! it MUST be called without quotes
+
+## finding specific elements with snapshot
+
+You can use `searchString` to find specific elements in the snapshot without reading the whole page structure. This is useful for finding forms, textareas, or specific text.
+
+Example: find a textarea or form using case-insensitive regex:
+
+```js
+const snapshot = await accessibilitySnapshot({ page, searchString: /textarea|form/i })
+console.log(snapshot)
+```
+
+Example: find elements containing "Login":
+
+```js
+const snapshot = await accessibilitySnapshot({ page, searchString: "Login" })
+console.log(snapshot)
+```
 
 ## getting outputs of code execution
 

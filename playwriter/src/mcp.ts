@@ -46,7 +46,11 @@ interface VMContext {
     error: (...args: any[]) => void
     debug: (...args: any[]) => void
   }
-  accessibilitySnapshot: (page: Page) => Promise<string>
+  accessibilitySnapshot: (options: {
+    page: Page
+    searchString?: string | RegExp
+    contextLines?: number
+  }) => Promise<string>
   resetPlaywright: () => Promise<{ page: Page; context: BrowserContext }>
   require: NodeRequire
   import: (specifier: string) => Promise<any>
@@ -223,14 +227,52 @@ server.tool(
         },
       }
 
-      const accessibilitySnapshot = async (targetPage: Page) => {
+      const accessibilitySnapshot = async (options: {
+        page: Page
+        searchString?: string | RegExp
+        contextLines?: number
+      }) => {
+        const { page: targetPage, searchString, contextLines = 10 } = options
         if ((targetPage as any)._snapshotForAI) {
           const snapshot = await (targetPage as any)._snapshotForAI()
           const snapshotStr =
             typeof snapshot === 'string'
               ? snapshot
               : JSON.stringify(snapshot, null, 2)
-          return snapshotStr
+
+          if (!searchString) {
+            return snapshotStr
+          }
+
+          const lines = snapshotStr.split('\n')
+          const matches: { line: string; index: number }[] = []
+
+          for (let i = 0; i < lines.length; i++) {
+            const line = lines[i]
+            let isMatch = false
+            if (searchString instanceof RegExp) {
+              isMatch = searchString.test(line)
+            } else {
+              isMatch = line.includes(searchString)
+            }
+
+            if (isMatch) {
+              matches.push({ line, index: i })
+              if (matches.length >= 10) break
+            }
+          }
+
+          if (matches.length === 0) {
+            return 'No matches found'
+          }
+
+          return matches
+            .map((m) => {
+              const start = Math.max(0, m.index - contextLines)
+              const end = Math.min(lines.length, m.index + contextLines + 1)
+              return lines.slice(start, end).join('\n')
+            })
+            .join('\n\n---\n\n')
         }
         throw new Error('accessibilitySnapshot is not available on this page')
       }
