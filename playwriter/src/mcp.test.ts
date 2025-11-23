@@ -107,7 +107,8 @@ describe('MCP Server Tests', () => {
         const extensionPath = path.resolve('../extension/dist')
 
         browserContext = await chromium.launchPersistentContext(userDataDir, {
-            headless: false,
+          channel: 'chromium', // <- this opts into new headless
+          headless: !process.env.HEADFUL,
             args: [
                 `--disable-extensions-except=${extensionPath}`,
                 `--load-extension=${extensionPath}`,
@@ -384,12 +385,12 @@ describe('MCP Server Tests', () => {
         if (!browserContext) throw new Error('Browser not initialized')
 
         const serviceWorker = await getExtensionServiceWorker(browserContext)
-        
+
         // Connect once
         const directBrowser = await chromium.connectOverCDP(getCdpUrl())
         // Wait a bit for connection and initial target discovery
         await new Promise(r => setTimeout(r, 500))
-        
+
         // 1. Create a new page
         const page = await browserContext.newPage()
         const testUrl = 'https://example.com/persistent'
@@ -411,7 +412,7 @@ describe('MCP Server Tests', () => {
         }
         expect(foundPage).toBeDefined()
         expect(foundPage?.url()).toBe(testUrl)
-        
+
         // Verify execution works
         const sum1 = await foundPage?.evaluate(() => 10 + 20)
         expect(sum1).toBe(30)
@@ -444,7 +445,7 @@ describe('MCP Server Tests', () => {
         }
         expect(foundPage).toBeDefined()
         expect(foundPage?.url()).toBe(testUrl)
-        
+
         // Verify execution works again
         const sum2 = await foundPage?.evaluate(() => 30 + 40)
         expect(sum2).toBe(70)
@@ -482,7 +483,7 @@ describe('MCP Server Tests', () => {
         await connectedPage?.reload()
         await connectedPage?.waitForLoadState('networkidle')
         expect(await connectedPage?.title()).toBe('Example Domain')
-        
+
         // Verify execution after reload
         expect(await connectedPage?.evaluate(() => 2 + 2)).toBe(4)
 
@@ -687,7 +688,7 @@ describe('MCP Server Tests', () => {
         const targetUrl = 'https://example.com/late-enable'
         await page.goto(targetUrl)
         await page.bringToFront()
-        
+
         // Wait for load
         await page.waitForLoadState('networkidle')
 
@@ -700,12 +701,12 @@ describe('MCP Server Tests', () => {
         const browser = await chromium.connectOverCDP(getCdpUrl())
         // Wait for sync
         await new Promise(r => setTimeout(r, 1000))
-        
+
         const cdpPage = browser.contexts()[0].pages().find(p => p.url() === targetUrl)
-        
+
         expect(cdpPage).toBeDefined()
         expect(cdpPage?.url()).toBe(targetUrl)
-        
+
         await browser.close()
         await page.close()
     })
