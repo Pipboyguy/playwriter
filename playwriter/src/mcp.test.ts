@@ -52,7 +52,7 @@ async function killProcessOnPort(port: number): Promise<void> {
 
 declare global {
     var toggleExtensionForActiveTab: () => Promise<{ isConnected: boolean; state: any }>;
-    var getExtensionState: () => { connectedTabs: Map<number, { targetId: string }> };
+    var getExtensionState: () => { connectedTabs: Map<number, { targetId: string; state: string }>; connectionState: string };
     var disconnectEverything: () => Promise<void>;
     var chrome: any;
 }
