@@ -15,12 +15,7 @@ type ForwardCDPCommand =
     }
   }[keyof ProtocolMapping.Commands]
 
-export type ExtensionCommandMessage =
-  | {
-      id: number
-      method: 'attachToTab'
-    }
-  | ForwardCDPCommand
+export type ExtensionCommandMessage = ForwardCDPCommand
 
 export type ExtensionResponseMessage = {
   id: number
