@@ -336,6 +336,28 @@ server.tool(
     timeout: z.number().default(5000).describe('Timeout in milliseconds for code execution (default: 5000ms)'),
   },
   async ({ code, timeout }) => {
+    const consoleLogs: Array<{ method: string; args: any[] }> = []
+
+    const formatConsoleLogs = (logs: Array<{ method: string; args: any[] }>, prefix = 'Console output') => {
+      if (logs.length === 0) {
+        return ''
+      }
+
+      let text = `${prefix}:\n`
+      logs.forEach(({ method, args }) => {
+        const formattedArgs = args
+          .map((arg) => {
+            if (typeof arg === 'object') {
+              return JSON.stringify(arg, null, 2)
+            }
+            return String(arg)
+          })
+          .join(' ')
+        text += `[${method}] ${formattedArgs}\n`
+      })
+      return text + '\n'
+    }
+
     try {
       await ensureRelayServer()
       await ensureConnection()
@@ -344,7 +366,6 @@ server.tool(
       const context = state.context || page.context()
 
       console.error('Executing code:', code)
-      const consoleLogs: Array<{ method: string; args: any[] }> = []
 
       const customConsole = {
         log: (...args: any[]) => {
@@ -521,23 +542,7 @@ server.tool(
         ),
       ])
 
-      let responseText = ''
-
-      if (consoleLogs.length > 0) {
-        responseText += 'Console output:\n'
-        consoleLogs.forEach(({ method, args }) => {
-          const formattedArgs = args
-            .map((arg) => {
-              if (typeof arg === 'object') {
-                return JSON.stringify(arg, null, 2)
-              }
-              return String(arg)
-            })
-            .join(' ')
-          responseText += `[${method}] ${formattedArgs}\n`
-        })
-        responseText += '\n'
-      }
+      let responseText = formatConsoleLogs(consoleLogs)
 
       if (result !== undefined) {
         responseText += 'Return value:\n'
@@ -569,6 +574,9 @@ server.tool(
     } catch (error: any) {
       const errorStack = error.stack || error.message
       console.error('Error in execute tool, attempting reset:', errorStack)
+
+      const logsText = formatConsoleLogs(consoleLogs, 'Console output (before error)')
+
       if (error.message.includes('duplicate target')) {
         await sendLogToRelayServer('error', '[MCP] CRITICAL ERROR - Connection reset triggered:', errorStack)
         try {
@@ -577,7 +585,7 @@ server.tool(
             content: [
               {
                 type: 'text',
-                text: `Connection was reset due to error. Please retry your command.\n\nError: ${error.message}`,
+                text: `${logsText}Connection was reset due to internal error. Please retry your command.\n\nError: ${error.message}`,
               },
             ],
           }
@@ -591,7 +599,7 @@ server.tool(
             content: [
               {
                 type: 'text',
-                text: `Error executing code: ${error.message}\n${errorStack}`,
+                text: `${logsText}Connection was reset due to internal error. Error executing code: ${error.message}\n${errorStack}`,
               },
             ],
             isError: true,
@@ -602,7 +610,7 @@ server.tool(
         content: [
           {
             type: 'text',
-            text: `Error executing code: ${error.message}\n${errorStack}`,
+            text: `${logsText}Error executing code: ${error.message}\n${errorStack}`,
           },
         ],
         isError: true,
