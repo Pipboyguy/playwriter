@@ -750,6 +750,11 @@ async function onActionClicked(tab: chrome.tabs.Tab): Promise<void> {
     return
   }
 
+  if (tabInfo?.state === 'connecting') {
+    logger.debug('Tab is already connecting, ignoring click')
+    return
+  }
+
   if (tabInfo?.state === 'connected') {
     await disconnectTab(tab.id)
   } else {
