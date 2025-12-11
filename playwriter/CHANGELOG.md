@@ -5,6 +5,13 @@
 ### Patch Changes
 
 - **Improved error debugging**: Log file path now included in error messages and tool description. Log file writes to OS temp directory by default (`PLAYWRITER_LOG_PATH` env var to override)
+- **Added CDP Session tests**: New test suite for direct CDP usage via `page.context().newCDPSession(page)`
+  - Debugger test: pauses on `debugger` statement, captures stack trace, local variables, and evaluates expressions
+  - Profiler test: profiles JavaScript execution with inline snapshot of function names
+  - Performance metrics test: captures metrics like Documents, Nodes, JSHeapUsedSize
+- **Refactored test setup**: Extracted `setupTestContext()` and `cleanupTestContext()` to deduplicate beforeAll/afterAll code
+- **Improved `getExtensionServiceWorker`**: Now waits for extension global functions to be ready before returning
+- **Better TypeScript types**: Uses `Protocol.Debugger.PausedEvent`, `Protocol.Profiler.Profile`, `Protocol.Performance.Metric` instead of `any`
 
 ## 0.0.16
 
