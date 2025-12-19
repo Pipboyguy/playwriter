@@ -18,6 +18,8 @@ read playwriter/src/prompt.md to understand how the MCP works
   - a few more events need custom handling
 - tabs are identified by sessionId or targetId (CDP concepts) or tabId (chrome debugger concept only)
 
+mcp.ts MUST never use console.log. only console.error
+
 ## development
 
 extension/ contains the chrome extension code. you need to run `pnpm build` to make it ready to be loaded in chrome. the extension folder chrome will use is extension/dist
