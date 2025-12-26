@@ -165,7 +165,7 @@ describe('MCP Server Tests', () => {
         await serviceWorker.evaluate(async () => {
             await globalThis.toggleExtensionForActiveTab()
         })
-        await new Promise(r => setTimeout(r, 200))
+        await new Promise(r => setTimeout(r, 100))
 
         const browser = await chromium.connectOverCDP(getCdpUrl({ port: TEST_PORT }))
         const cdpPage = browser.contexts()[0].pages().find(p => {
@@ -430,7 +430,7 @@ describe('MCP Server Tests', () => {
 
         directBrowser = await chromium.connectOverCDP(getCdpUrl({ port: TEST_PORT }))
         // Wait a bit for targets to populate
-        await new Promise(r => setTimeout(r, 200))
+        await new Promise(r => setTimeout(r, 100))
 
         contexts = directBrowser.contexts()
         // pages() might need a moment if target attached event comes in
@@ -458,7 +458,7 @@ describe('MCP Server Tests', () => {
         // Connect once
         const directBrowser = await chromium.connectOverCDP(getCdpUrl({ port: TEST_PORT }))
         // Wait a bit for connection and initial target discovery
-        await new Promise(r => setTimeout(r, 200))
+        await new Promise(r => setTimeout(r, 100))
 
         // 1. Create a new page
         const page = await browserContext.newPage()
@@ -574,13 +574,13 @@ describe('MCP Server Tests', () => {
     it('should support multiple concurrent tabs', async () => {
         const browserContext = getBrowserContext()
         const serviceWorker = await getExtensionServiceWorker(browserContext)
-        await new Promise(resolve => setTimeout(resolve, 200))
+        await new Promise(resolve => setTimeout(resolve, 100))
 
         // Tab A
         const pageA = await browserContext.newPage()
         await pageA.goto('https://example.com/tab-a')
         await pageA.bringToFront()
-        await new Promise(resolve => setTimeout(resolve, 200))
+        await new Promise(resolve => setTimeout(resolve, 100))
         await serviceWorker.evaluate(async () => {
             await globalThis.toggleExtensionForActiveTab()
         })
@@ -589,7 +589,7 @@ describe('MCP Server Tests', () => {
         const pageB = await browserContext.newPage()
         await pageB.goto('https://example.com/tab-b')
         await pageB.bringToFront()
-        await new Promise(resolve => setTimeout(resolve, 200))
+        await new Promise(resolve => setTimeout(resolve, 100))
         await serviceWorker.evaluate(async () => {
             await globalThis.toggleExtensionForActiveTab()
         })
@@ -708,7 +708,7 @@ describe('MCP Server Tests', () => {
         expect(initialEnable.isConnected).toBe(true)
 
         // Wait for extension to fully connect
-        await new Promise(resolve => setTimeout(resolve, 200))
+        await new Promise(resolve => setTimeout(resolve, 100))
 
         // Verify MCP can see the page
         const beforeDisconnect = await client.callTool({
@@ -735,7 +735,7 @@ describe('MCP Server Tests', () => {
         })
 
         // Wait for disconnect to complete
-        await new Promise(resolve => setTimeout(resolve, 200))
+        await new Promise(resolve => setTimeout(resolve, 100))
 
         // 3. Verify MCP cannot see the page anymore
         const afterDisconnect = await client.callTool({
@@ -1178,7 +1178,7 @@ describe('MCP Server Tests', () => {
             await globalThis.toggleExtensionForActiveTab()
         })
 
-        await new Promise(r => setTimeout(r, 200))
+        await new Promise(r => setTimeout(r, 100))
 
         const browser = await chromium.connectOverCDP(getCdpUrl({ port: TEST_PORT }))
         const pages = browser.contexts()[0].pages()
@@ -1214,7 +1214,7 @@ describe('MCP Server Tests', () => {
             expect(testPage?.url()).toBe(targetUrl)
 
             await browser.close()
-            await new Promise(r => setTimeout(r, 200))
+            await new Promise(r => setTimeout(r, 100))
         }
 
         await page.close()
@@ -1282,7 +1282,7 @@ describe('MCP Server Tests', () => {
             await globalThis.toggleExtensionForActiveTab()
         })
 
-        await new Promise(r => setTimeout(r, 200))
+        await new Promise(r => setTimeout(r, 100))
 
         for (let i = 0; i < 3; i++) {
             const browser = await chromium.connectOverCDP(getCdpUrl({ port: TEST_PORT }))
@@ -1318,7 +1318,7 @@ describe('MCP Server Tests', () => {
             await globalThis.toggleExtensionForActiveTab()
         })
 
-        await new Promise(r => setTimeout(r, 200))
+        await new Promise(r => setTimeout(r, 100))
 
         const capturedCommands: CDPCommand[] = []
         const commandHandler = ({ command }: { clientId: string; command: CDPCommand }) => {
@@ -1447,7 +1447,7 @@ describe('MCP Server Tests', () => {
             await globalThis.toggleExtensionForActiveTab()
         })
 
-        await new Promise(r => setTimeout(r, 200))
+        await new Promise(r => setTimeout(r, 100))
 
         const capturedCommands: CDPCommand[] = []
         const commandHandler = ({ command }: { clientId: string; command: CDPCommand }) => {
@@ -1562,7 +1562,7 @@ describe('MCP Server Tests', () => {
             await globalThis.toggleExtensionForActiveTab()
         })
 
-        await new Promise(r => setTimeout(r, 200))
+        await new Promise(r => setTimeout(r, 100))
 
         const browser = await chromium.connectOverCDP(getCdpUrl({ port: TEST_PORT }))
         const cdpPage = browser.contexts()[0].pages().find(p => p.url().includes('example.com'))
@@ -1642,7 +1642,7 @@ describe('MCP Server Tests', () => {
             await globalThis.toggleExtensionForActiveTab()
         })
 
-        await new Promise(r => setTimeout(r, 200))
+        await new Promise(r => setTimeout(r, 100))
 
         const browser = await chromium.connectOverCDP(getCdpUrl({ port: TEST_PORT }))
         const cdpPage = browser.contexts()[0].pages().find(p => p.url().includes('example.com'))
@@ -1667,7 +1667,7 @@ describe('MCP Server Tests', () => {
         await serviceWorker.evaluate(async () => {
             await globalThis.disconnectEverything()
         })
-        await new Promise(r => setTimeout(r, 200))
+        await new Promise(r => setTimeout(r, 100))
 
         const targetUrl = 'https://example.com/'
 
@@ -1730,7 +1730,7 @@ describe('MCP Server Tests', () => {
         await serviceWorker.evaluate(async () => {
             await globalThis.toggleExtensionForActiveTab()
         })
-        await new Promise(r => setTimeout(r, 200))
+        await new Promise(r => setTimeout(r, 100))
 
         const result = await client.callTool({
             name: 'execute',
@@ -1788,7 +1788,7 @@ describe('CDP Session Tests', () => {
         await serviceWorker.evaluate(async () => {
             await globalThis.disconnectEverything()
         })
-        await new Promise(r => setTimeout(r, 200))
+        await new Promise(r => setTimeout(r, 100))
     }, 600000)
 
     afterAll(async () => {
@@ -1812,7 +1812,7 @@ describe('CDP Session Tests', () => {
         await serviceWorker.evaluate(async () => {
             await globalThis.toggleExtensionForActiveTab()
         })
-        await new Promise(r => setTimeout(r, 200))
+        await new Promise(r => setTimeout(r, 100))
 
         const browser = await chromium.connectOverCDP(getCdpUrl({ port: TEST_PORT }))
         const cdpPage = browser.contexts()[0].pages().find(p => p.url().includes('example.com'))
@@ -1890,7 +1890,7 @@ describe('CDP Session Tests', () => {
         await serviceWorker.evaluate(async () => {
             await globalThis.toggleExtensionForActiveTab()
         })
-        await new Promise(r => setTimeout(r, 200))
+        await new Promise(r => setTimeout(r, 100))
 
         const browser = await chromium.connectOverCDP(getCdpUrl({ port: TEST_PORT }))
         let cdpPage
@@ -1945,7 +1945,7 @@ describe('CDP Session Tests', () => {
         await serviceWorker.evaluate(async () => {
             await globalThis.toggleExtensionForActiveTab()
         })
-        await new Promise(r => setTimeout(r, 200))
+        await new Promise(r => setTimeout(r, 100))
 
         const browser = await chromium.connectOverCDP(getCdpUrl({ port: TEST_PORT }))
         let cdpPage
@@ -1994,7 +1994,7 @@ describe('CDP Session Tests', () => {
         await serviceWorker.evaluate(async () => {
             await globalThis.toggleExtensionForActiveTab()
         })
-        await new Promise(r => setTimeout(r, 200))
+        await new Promise(r => setTimeout(r, 100))
 
         const browser = await chromium.connectOverCDP(getCdpUrl({ port: TEST_PORT }))
         const cdpPage = browser.contexts()[0].pages().find(p => p.url().includes('example.com'))
@@ -2067,7 +2067,7 @@ describe('CDP Session Tests', () => {
         await serviceWorker.evaluate(async () => {
             await globalThis.toggleExtensionForActiveTab()
         })
-        await new Promise(r => setTimeout(r, 200))
+        await new Promise(r => setTimeout(r, 100))
 
         const browser = await chromium.connectOverCDP(getCdpUrl({ port: TEST_PORT }))
         const cdpPage = browser.contexts()[0].pages().find(p => p.url().includes('example.com'))
@@ -2122,7 +2122,7 @@ describe('CDP Session Tests', () => {
         await serviceWorker.evaluate(async () => {
             await globalThis.toggleExtensionForActiveTab()
         })
-        await new Promise(r => setTimeout(r, 200))
+        await new Promise(r => setTimeout(r, 100))
 
         const browser = await chromium.connectOverCDP(getCdpUrl({ port: TEST_PORT }))
         const cdpPage = browser.contexts()[0].pages().find(p => p.url().includes('example.com'))
@@ -2173,7 +2173,7 @@ describe('CDP Session Tests', () => {
             await globalThis.toggleExtensionForActiveTab()
         })
 
-        await new Promise(r => setTimeout(r, 200))
+        await new Promise(r => setTimeout(r, 100))
 
         const browser = await chromium.connectOverCDP(getCdpUrl({ port: TEST_PORT }))
         const cdpPage = browser.contexts()[0].pages().find(p => p.url().includes('example.com'))
@@ -2222,10 +2222,10 @@ describe('CDP Session Tests', () => {
         await serviceWorker.evaluate(async () => {
             await globalThis.toggleExtensionForActiveTab()
         })
-        await new Promise(r => setTimeout(r, 200))
+        await new Promise(r => setTimeout(r, 100))
 
         await page.goto('https://example.org/', { waitUntil: 'domcontentloaded' })
-        await new Promise(r => setTimeout(r, 200))
+        await new Promise(r => setTimeout(r, 100))
 
         const browser = await chromium.connectOverCDP(getCdpUrl({ port: TEST_PORT }))
         const cdpPage = browser.contexts()[0].pages().find(p => p.url().includes('example.org'))
@@ -2257,7 +2257,7 @@ describe('CDP Session Tests', () => {
         await serviceWorker.evaluate(async () => {
             await globalThis.toggleExtensionForActiveTab()
         })
-        await new Promise(r => setTimeout(r, 200))
+        await new Promise(r => setTimeout(r, 100))
 
         const browser = await chromium.connectOverCDP(getCdpUrl({ port: TEST_PORT }))
         const cdpPage = browser.contexts()[0].pages().find(p => p.url().includes('example.com'))
@@ -2309,7 +2309,7 @@ describe('CDP Session Tests', () => {
         await serviceWorker.evaluate(async () => {
             await globalThis.toggleExtensionForActiveTab()
         })
-        await new Promise(r => setTimeout(r, 200))
+        await new Promise(r => setTimeout(r, 100))
 
         const browser = await chromium.connectOverCDP(getCdpUrl({ port: TEST_PORT }))
         const cdpPage = browser.contexts()[0].pages().find(p => p.url().includes('example.com'))
@@ -2385,7 +2385,7 @@ describe('CDP Session Tests', () => {
         await serviceWorker.evaluate(async () => {
             await globalThis.toggleExtensionForActiveTab()
         })
-        await new Promise(r => setTimeout(r, 200))
+        await new Promise(r => setTimeout(r, 100))
 
         const browser = await chromium.connectOverCDP(getCdpUrl({ port: TEST_PORT }))
         let cdpPage
@@ -2449,7 +2449,7 @@ describe('CDP Session Tests', () => {
         await serviceWorker.evaluate(async () => {
             await globalThis.toggleExtensionForActiveTab()
         })
-        await new Promise(r => setTimeout(r, 200))
+        await new Promise(r => setTimeout(r, 100))
 
         const browser = await chromium.connectOverCDP(getCdpUrl({ port: TEST_PORT }))
         const cdpPage = browser.contexts()[0].pages().find(p => p.url().includes('example.com'))
@@ -2490,7 +2490,7 @@ describe('CDP Session Tests', () => {
         await serviceWorker.evaluate(async () => {
             await globalThis.toggleExtensionForActiveTab()
         })
-        await new Promise(r => setTimeout(r, 200))
+        await new Promise(r => setTimeout(r, 100))
 
         const browser = await chromium.connectOverCDP(getCdpUrl({ port: TEST_PORT }))
         const cdpPage = browser.contexts()[0].pages().find(p => p.url().includes('example.com'))
@@ -2537,7 +2537,7 @@ describe('CDP Session Tests', () => {
         await cdpPage!.evaluate(() => {
             (window as any).greetUser('World')
         })
-        await new Promise(r => setTimeout(r, 200))
+        await new Promise(r => setTimeout(r, 100))
 
         expect(consoleLogs).toContain('Hello, World')
         expect(consoleLogs).toContain('EDITOR_TEST_MARKER')
