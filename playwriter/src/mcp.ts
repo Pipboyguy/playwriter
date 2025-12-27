@@ -816,6 +816,8 @@ server.tool(
     After calling this tool, the page and context variables are automatically updated in the execution environment.
 
     IMPORTANT: this completely resets the execution context, removing any custom properties you may have added to the global scope AND clearing all keys from the \`state\` object. Only \`page\`, \`context\`, \`state\` (empty), \`console\`, and utility functions will remain.
+
+    if playwright always returns all pages as about:blank urls and evaluate does not work you should aks the user to restart Chrome. This is a known Chrome bug.
   `,
   {},
   async () => {
