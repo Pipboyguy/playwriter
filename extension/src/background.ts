@@ -230,9 +230,15 @@ async function handleCommand(msg: ExtensionCommandMessage): Promise<any> {
       if (!debuggee) {
         throw new Error(`No debuggee found for Runtime.enable (sessionId: ${msg.params.sessionId})`)
       }
+      // When multiple Playwright clients connect to the same tab, each calls Runtime.enable.
+      // If Runtime is already enabled, the enable call succeeds but Chrome doesn't re-send
+      // Runtime.executionContextCreated events - those were already sent to the first client.
+      // By disabling first, we force Chrome to re-send all execution context events when we
+      // re-enable, ensuring the new client receives them. The relay server waits for the
+      // executionContextCreated events before returning. See cdp-timing.md for details.
       try {
         await chrome.debugger.sendCommand(debuggee, 'Runtime.disable')
-        await sleep(400)
+        await sleep(50)
       } catch (e) {
         logger.debug('Error disabling Runtime (ignoring):', e)
       }
@@ -359,8 +365,6 @@ async function attachTab(tabId: number): Promise<Protocol.Target.TargetInfo> {
   logger.debug('Debugger attached successfully to tab:', tabId)
 
   await chrome.debugger.sendCommand(debuggee, 'Page.enable')
-
-  await sleep(400)
 
   const result = (await chrome.debugger.sendCommand(
     debuggee,
@@ -507,15 +511,7 @@ function handleConnectionClose(reason: string, code: number): void {
     return
   }
 
-  store.setState((state) => {
-    const newTabs = new Map(state.tabs)
-    for (const [tabId, tab] of newTabs) {
-      if (tab.state === 'connected') {
-        newTabs.set(tabId, { ...tab, state: 'connecting' })
-      }
-    }
-    return { tabs: newTabs, connectionState: 'disconnected', errorText: undefined }
-  })
+  store.setState({ connectionState: 'disconnected', errorText: undefined })
 
   if (tabs.size > 0) {
     logger.debug('Tabs still connected, triggering reconnection')
