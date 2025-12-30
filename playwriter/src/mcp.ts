@@ -431,109 +431,48 @@ const promptContent =
   fs.readFileSync(path.join(path.dirname(fileURLToPath(import.meta.url)), 'prompt.md'), 'utf-8') +
   `\n\nfor debugging internal playwriter errors, check playwriter relay server logs at: ${LOG_FILE_PATH}`
 
-server.resource('debugger-api', 'playwriter://debugger-api', { mimeType: 'text/plain' }, async () => {
+server.resource('debugger-api', 'https://playwriter.dev/resources/debugger-api.md', { mimeType: 'text/plain' }, async () => {
   const packageJsonPath = require.resolve('playwriter/package.json')
   const packageDir = path.dirname(packageJsonPath)
-
-  const debuggerTypes = fs
-    .readFileSync(path.join(packageDir, 'dist', 'debugger.d.ts'), 'utf-8')
-    .replace(/\/\/# sourceMappingURL=.*$/gm, '')
-    .trim()
-  const debuggerExamples = fs.readFileSync(path.join(packageDir, 'src', 'debugger-examples.ts'), 'utf-8')
+  const content = fs.readFileSync(path.join(packageDir, 'dist', 'debugger-api.md'), 'utf-8')
 
   return {
     contents: [
       {
-        uri: 'playwriter://debugger-api',
-        text: dedent`
-          # Debugger API Reference
-
-          ## Types
-
-          \`\`\`ts
-          ${debuggerTypes}
-          \`\`\`
-
-          ## Examples
-
-          \`\`\`ts
-          ${debuggerExamples}
-          \`\`\`
-        `,
+        uri: 'https://playwriter.dev/resources/debugger-api.md',
+        text: content,
         mimeType: 'text/plain',
       },
     ],
   }
 })
 
-server.resource('editor-api', 'playwriter://editor-api', { mimeType: 'text/plain' }, async () => {
+server.resource('editor-api', 'https://playwriter.dev/resources/editor-api.md', { mimeType: 'text/plain' }, async () => {
   const packageJsonPath = require.resolve('playwriter/package.json')
   const packageDir = path.dirname(packageJsonPath)
-
-  const editorTypes = fs
-    .readFileSync(path.join(packageDir, 'dist', 'editor.d.ts'), 'utf-8')
-    .replace(/\/\/# sourceMappingURL=.*$/gm, '')
-    .trim()
-  const editorExamples = fs.readFileSync(path.join(packageDir, 'src', 'editor-examples.ts'), 'utf-8')
+  const content = fs.readFileSync(path.join(packageDir, 'dist', 'editor-api.md'), 'utf-8')
 
   return {
     contents: [
       {
-        uri: 'playwriter://editor-api',
-        text: dedent`
-          # Editor API Reference
-
-          The Editor class provides a Claude Code-like interface for viewing and editing web page scripts at runtime.
-
-          ## Types
-
-          \`\`\`ts
-          ${editorTypes}
-          \`\`\`
-
-          ## Examples
-
-          \`\`\`ts
-          ${editorExamples}
-          \`\`\`
-        `,
+        uri: 'https://playwriter.dev/resources/editor-api.md',
+        text: content,
         mimeType: 'text/plain',
       },
     ],
   }
 })
 
-server.resource('styles-api', 'playwriter://styles-api', { mimeType: 'text/plain' }, async () => {
+server.resource('styles-api', 'https://playwriter.dev/resources/styles-api.md', { mimeType: 'text/plain' }, async () => {
   const packageJsonPath = require.resolve('playwriter/package.json')
   const packageDir = path.dirname(packageJsonPath)
-
-  const stylesTypes = fs
-    .readFileSync(path.join(packageDir, 'dist', 'styles.d.ts'), 'utf-8')
-    .replace(/\/\/# sourceMappingURL=.*$/gm, '')
-    .trim()
-  const stylesExamples = fs.readFileSync(path.join(packageDir, 'src', 'styles-examples.ts'), 'utf-8')
+  const content = fs.readFileSync(path.join(packageDir, 'dist', 'styles-api.md'), 'utf-8')
 
   return {
     contents: [
       {
-        uri: 'playwriter://styles-api',
-        text: dedent`
-          # Styles API Reference
-
-          The getStylesForLocator function inspects CSS styles applied to an element, similar to browser DevTools "Styles" panel.
-
-          ## Types
-
-          \`\`\`ts
-          ${stylesTypes}
-          \`\`\`
-
-          ## Examples
-
-          \`\`\`ts
-          ${stylesExamples}
-          \`\`\`
-        `,
+        uri: 'https://playwriter.dev/resources/styles-api.md',
+        text: content,
         mimeType: 'text/plain',
       },
     ],
