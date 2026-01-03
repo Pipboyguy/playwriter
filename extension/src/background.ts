@@ -252,10 +252,26 @@ class ConnectionManager {
         continue
       }
 
-      // Try to connect silently in background - don't show 'connecting' badge
-      // Individual tab states will show 'connecting' when user explicitly clicks
-      try {
-        await this.ensureConnection()
+    // Ensure tabs are in 'connecting' state when WS is not connected
+    // This handles edge cases where handleClose wasn't called or state got out of sync
+    const currentTabs = store.getState().tabs
+    const hasConnectedTabs = Array.from(currentTabs.values()).some((t) => t.state === 'connected')
+    if (hasConnectedTabs) {
+      store.setState((state) => {
+        const newTabs = new Map(state.tabs)
+        for (const [tabId, tab] of newTabs) {
+          if (tab.state === 'connected') {
+            newTabs.set(tabId, { ...tab, state: 'connecting' })
+          }
+        }
+        return { tabs: newTabs }
+      })
+    }
+
+    // Try to connect silently in background - don't show 'connecting' badge
+    // Individual tab states will show 'connecting' when user explicitly clicks
+    try {
+      await this.ensureConnection()
         store.setState({ connectionState: 'connected' })
 
         // Re-attach any tabs that were in 'connecting' state (from a previous disconnect)
