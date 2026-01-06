@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.0.41
+
+### Features
+
+- **Arrow connectors in screenshot labels**: Visual labels now show arrow lines from label to element center, making it clearer which element each label references
+
+### Patch Changes
+
+- **Bigger label font**: Increased label font size from 11px to 12px for better readability
+- **Fixed screenshot dimensions**: Screenshots now use actual viewport size (`innerWidth`/`innerHeight`) with `scale: 'css'` to match visual appearance
+
 ## 0.0.40
 
 ### Features
