@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.0.42
+
+### Bug Fixes
+
+- **Fix "no low surrogate in string" API error**: Sanitize accessibility snapshot text using `toWellFormed()` to remove unpaired Unicode surrogates that break JSON encoding for Claude API (requires Node.js 20+ for sanitization, gracefully degrades on older versions)
+
 ## 0.0.41
 
 ### Features

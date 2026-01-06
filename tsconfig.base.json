@@ -8,6 +8,7 @@
         "rootDir": "${configDir}/src",
         "moduleResolution": "NodeNext",
         "lib": [
+            "es2024",
             "es2022",
             "es2017",
             "es7",

@@ -128,7 +128,9 @@ export async function getAriaSnapshot({ page }: { page: Page }): Promise<AriaSna
   }
 
   const snapshot = await snapshotMethod.call(page)
-  const snapshotStr = typeof snapshot === 'string' ? snapshot : (snapshot.full || JSON.stringify(snapshot, null, 2))
+  // Sanitize to remove unpaired surrogates that break JSON encoding for Claude API
+  const rawStr = typeof snapshot === 'string' ? snapshot : (snapshot.full || JSON.stringify(snapshot, null, 2))
+  const snapshotStr = rawStr.toWellFormed?.() ?? rawStr
 
   // Discover refs by probing aria-ref=e1, e2, e3... until 10 consecutive misses
   const refToElement = new Map<string, { role: string; name: string }>()

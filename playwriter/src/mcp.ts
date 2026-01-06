@@ -719,7 +719,9 @@ server.tool(
         const { page: targetPage, search, contextLines = 10, showDiffSinceLastCall = false } = options
         if ((targetPage as any)._snapshotForAI) {
           const snapshot = await (targetPage as any)._snapshotForAI()
-          const snapshotStr = typeof snapshot === 'string' ? snapshot : JSON.stringify(snapshot, null, 2)
+          // Sanitize to remove unpaired surrogates that break JSON encoding for Claude API
+          const rawStr = typeof snapshot === 'string' ? snapshot : JSON.stringify(snapshot, null, 2)
+          const snapshotStr = rawStr.toWellFormed?.() ?? rawStr
 
           if (showDiffSinceLastCall) {
             const previousSnapshot = lastSnapshots.get(targetPage)
@@ -1059,7 +1061,7 @@ async function checkRemoteServer({ host, port }: { host: string; port: number })
     if (isConnectionError) {
       throw new Error(
         `Cannot connect to remote relay server at ${host}:${port}. ` +
-          `Make sure 'npx playwriter serve' is running on the host machine.`,
+          `Make sure 'npx -y playwriter serve' is running on the host machine.`,
       )
     }
     throw new Error(`Failed to connect to remote relay server: ${error.message}`)
