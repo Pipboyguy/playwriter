@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.0.44
+
+### Features
+
+- **Search context lines**: `accessibilitySnapshot`, `getCleanHTML`, and `getLatestLogs` now include 5 lines of context above and below each search match
+  - Non-contiguous sections are separated by `---`
+  - Provides better context for understanding search results
+
 ## 0.0.43
 
 ### Features
