@@ -86,7 +86,7 @@ const page = context.pages()[0]
 await page.goto('https://example.com')
 await page.screenshot({ path: 'screenshot.png' })
 
-await browser.close()
+// Don't call browser.close() - it would close the user's Chrome
 server.close()
 ```
 
@@ -399,7 +399,7 @@ Playwriter is designed with security in mind, ensuring that only you can control
 1. **Local WebSocket Server**: When the MCP starts, it launches a singleton WebSocket server on `localhost:19988`
 2. **Dual Connection**: Both the Chrome extension and MCP client connect to this local server
 3. **User-Controlled Access**: The extension can only control tabs where you explicitly clicked the extension icon (green icon indicates connected tabs)
-4. **Localhost-Only**: The WebSocket server does not send CORS headers, preventing any web pages or remote servers from connecting to it - only processes running on your local machine can establish a connection
+4. **Origin Validation**: The WebSocket server validates the `Origin` header on all connections. Browsers cannot spoof this header, so malicious websites cannot connect to the local server. Only our specific Chrome extension IDs and local processes (which don't send an Origin header) are allowed
 5. **Explicit Consent**: Chrome displays an "automation banner" on controlled tabs, making it obvious when a tab is being automated
 
 ### What Can Be Controlled
@@ -410,7 +410,7 @@ Playwriter is designed with security in mind, ensuring that only you can control
 
 ### What Cannot Happen
 
-- **No remote access**: External websites or servers cannot connect to the WebSocket (localhost-only)
+- **No remote access**: Malicious websites cannot connect to the WebSocket server - browser-based connections require a valid extension Origin header that browsers cannot spoof
 - **No passive monitoring**: The extension cannot read or monitor tabs you haven't connected
 - **No automatic spreading**: The debugger won't automatically attach to new tabs you open manually
 
