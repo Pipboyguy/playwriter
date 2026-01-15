@@ -291,6 +291,14 @@ const el = await page.evaluateHandle(() => globalThis.playwriterPinnedElem1);
 await el.click();
 ```
 
+## taking screenshots
+
+Always use `scale: 'css'` to avoid 2-4x larger images on high-DPI displays:
+
+```js
+await page.screenshot({ path: 'shot.png', scale: 'css' });
+```
+
 ## page.evaluate
 
 Code inside `page.evaluate()` runs in the browser - use plain JavaScript only, no TypeScript syntax. Return values and log outside (console.log inside evaluate runs in browser, not visible):
