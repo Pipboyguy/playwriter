@@ -500,18 +500,22 @@ function setupPageConsoleListener(page: Page) {
 }
 
 async function getCurrentPage(timeout = 5000) {
-  if (state.page) {
+  // Check if current page is still valid (not closed)
+  if (state.page && !state.page.isClosed()) {
     return state.page
   }
 
+  // Current page is closed or doesn't exist - find another available page
   if (state.browser) {
     const contexts = state.browser.contexts()
     if (contexts.length > 0) {
-      const pages = contexts[0].pages()
+      const pages = contexts[0].pages().filter((p) => !p.isClosed())
 
       if (pages.length > 0) {
         const page = pages[0]
         await page.waitForLoadState('domcontentloaded', { timeout }).catch(() => {})
+        // Update state.page to the new default page
+        state.page = page
         return page
       }
     }

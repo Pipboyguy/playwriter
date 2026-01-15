@@ -737,7 +737,7 @@ describe('MCP Server Tests', () => {
         // Wait for disconnect to complete
         await new Promise(resolve => setTimeout(resolve, 100))
 
-        // 3. Verify MCP cannot see the page anymore
+        // 3. Verify MCP cannot execute code anymore (no pages available)
         const afterDisconnect = await client.callTool({
             name: 'execute',
             arguments: {
@@ -751,7 +751,9 @@ describe('MCP Server Tests', () => {
 
         const afterDisconnectOutput = (afterDisconnect as any).content[0].text
         console.log('After disconnect:', afterDisconnectOutput)
-        expect(afterDisconnectOutput).toContain('Pages after disconnect: 0')
+        // After disconnect, there are no pages - so we expect an error
+        expect((afterDisconnect as any).isError).toBe(true)
+        expect(afterDisconnectOutput).toContain('No browser tabs are connected')
 
         // 4. Re-enable extension on the same page
         console.log('Re-enabling extension...')
@@ -771,21 +773,14 @@ describe('MCP Server Tests', () => {
         await new Promise(resolve => setTimeout(resolve, 100))
 
         // 5. Reset the MCP client's playwright connection since it was closed by disconnectEverything
+        // Must use the reset tool since execute requires a valid page
         console.log('Resetting MCP playwright connection...')
         const resetResult = await client.callTool({
-            name: 'execute',
-            arguments: {
-                code: js`
-          console.log('Resetting playwright connection');
-          const result = await resetPlaywright();
-          console.log('Reset complete, checking pages');
-          const pages = context.pages();
-          console.log('Pages after reset:', pages.length);
-          return { reset: true, pagesCount: pages.length };
-        `,
-            },
+            name: 'reset',
+            arguments: {},
         })
         console.log('Reset result:', (resetResult as any).content[0].text)
+        expect((resetResult as any).content[0].text).toContain('Connection reset successfully')
 
         // 6. Verify MCP can see the page again
         console.log('Attempting to access page via MCP...')
@@ -2525,6 +2520,89 @@ describe('MCP Server Tests', () => {
         expect(searchText).toContain('button')
 
         await page.close()
+    }, 60000)
+
+    it('should handle default page being closed and switch to another available page', async () => {
+        // This test verifies that when the default `page` in MCP scope is closed,
+        // the MCP automatically switches to another available page instead of failing
+        // with cryptic "page closed" errors.
+
+        const browserContext = getBrowserContext()
+        const serviceWorker = await getExtensionServiceWorker(browserContext)
+
+        // 1. Disconnect everything to start fresh
+        await serviceWorker.evaluate(async () => {
+            await globalThis.disconnectEverything()
+        })
+        await new Promise(r => setTimeout(r, 100))
+
+        // 2. Create first page and enable extension
+        const page1 = await browserContext.newPage()
+        await page1.goto('https://example.com/first-page')
+        await page1.bringToFront()
+
+        await serviceWorker.evaluate(async () => {
+            await globalThis.toggleExtensionForActiveTab()
+        })
+        await new Promise(r => setTimeout(r, 100))
+
+        // 3. Reset MCP to ensure page1 becomes the default page (only page available)
+        const resetResult = await client.callTool({
+            name: 'reset',
+            arguments: {},
+        })
+        expect((resetResult as any).content[0].text).toContain('Connection reset successfully')
+
+        // 4. Verify initial page is accessible via default `page`
+        const initialResult = await client.callTool({
+            name: 'execute',
+            arguments: {
+                code: js`
+                    const url = page.url();
+                    console.log('Initial page URL:', url);
+                    return { url };
+                `,
+            },
+        })
+        expect((initialResult as any).content[0].text).toContain('first-page')
+
+        // 5. Create second page and enable extension
+        const page2 = await browserContext.newPage()
+        await page2.goto('https://example.com/second-page')
+        await page2.bringToFront()
+
+        await serviceWorker.evaluate(async () => {
+            await globalThis.toggleExtensionForActiveTab()
+        })
+        await new Promise(r => setTimeout(r, 100))
+
+        // 6. Close the first page (which is the default `page` in MCP scope)
+        await page1.close()
+        await new Promise(r => setTimeout(r, 100))
+
+        // 7. Execute code via MCP - should NOT fail with "page closed" error
+        // Instead, it should automatically switch to the second page
+        const afterCloseResult = await client.callTool({
+            name: 'execute',
+            arguments: {
+                code: js`
+                    const url = page.url();
+                    console.log('Page URL after close:', url);
+                    const title = await page.title();
+                    return { url, title };
+                `,
+            },
+        })
+
+        // Should succeed and return the second page's info
+        expect((afterCloseResult as any).isError).toBeFalsy()
+        const output = (afterCloseResult as any).content[0].text
+        expect(output).toContain('second-page')
+        expect(output).not.toContain('page closed')
+        expect(output).not.toContain('Target closed')
+
+        // Cleanup
+        await page2.close()
     }, 60000)
 
     it('should expose CDP discovery endpoints /json/version and /json/list', async () => {
