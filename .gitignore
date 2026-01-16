@@ -13,3 +13,6 @@ playwriter/src/assets/*.png
 playwriter/src/assets/framer.html
 *-snapshot.txt
 claude-extension
+
+# opensrc - source code for packages
+opensrc/
