@@ -50,7 +50,7 @@
 Or use the following command to automatically add the MCP setting for your client:
 
 ```sh
-npx -y install-mcp playwriter # pass `--client claude` or `--client opencode` for the client you want to use
+npx -y @playwriter/install-mcp playwriter@latest
 
 ```
 
