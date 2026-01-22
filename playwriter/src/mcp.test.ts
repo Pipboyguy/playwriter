@@ -753,7 +753,7 @@ describe('MCP Server Tests', () => {
         console.log('After disconnect:', afterDisconnectOutput)
         // After disconnect, there are no pages - so we expect an error
         expect((afterDisconnect as any).isError).toBe(true)
-        expect(afterDisconnectOutput).toContain('No browser tabs are connected')
+        expect(afterDisconnectOutput).toContain('No browser tabs have Playwriter enabled')
 
         // 4. Re-enable extension on the same page
         console.log('Re-enabling extension...')
