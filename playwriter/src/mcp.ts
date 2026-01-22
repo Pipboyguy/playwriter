@@ -182,6 +182,12 @@ server.tool(
   },
   async ({ code, timeout }) => {
     try {
+      // Check relay server on every execute to auto-recover from crashes
+      const remote = getRemoteConfig()
+      if (!remote) {
+        await ensureRelayServerForMcp()
+      }
+      
       const exec = await getOrCreateExecutor()
       const result = await exec.execute(code, timeout)
       
@@ -234,6 +240,12 @@ server.tool(
   {},
   async () => {
     try {
+      // Check relay server to auto-recover from crashes
+      const remote = getRemoteConfig()
+      if (!remote) {
+        await ensureRelayServerForMcp()
+      }
+      
       const exec = await getOrCreateExecutor()
       const { page, context } = await exec.reset()
       const pagesCount = context.pages().length
