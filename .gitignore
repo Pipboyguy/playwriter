@@ -17,8 +17,8 @@ claude-extension
 # opensrc - source code for packages
 opensrc/
 
-# snapshots
-playwriter/src/snapshots/shadcn-ui-accessibility.md
+# aria snapshots
+playwriter/src/aria-snapshots/
 
 # generated from skills/playwriter/SKILL.md
 playwriter/src/prompt.md
