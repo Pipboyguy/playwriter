@@ -91,7 +91,9 @@ EOF
 )"
 ```
 
-# playwriter execute
+---
+
+# playwriter best practices
 
 Control user's Chrome browser via playwright code snippets. Prefer single-line code with semicolons between statements. If you get "extension is not connected" or "no browser tabs have Playwriter enabled" error, tell user to click the playwriter extension icon on the tab they want to control.
 
@@ -516,4 +518,13 @@ Examples of what playwriter can do:
 
 ## debugging playwriter issues
 
-if some internal critical error happens you can read your own relay ws logs to understand the issue, it will show logs from extension, mcp and ws server together. then you can create a gh issue using `gh issue create -R remorses/playwriter --title title --body body`. ask for user confirmation before doing this.
+if some internal critical error happens you can read the relay server logs to understand the issue. the log file is located in the system temp directory:
+
+```bash
+playwriter logfile  # prints the log file path
+# typically: /tmp/playwriter/relay-server.log (Linux/macOS) or %TEMP%\playwriter\relay-server.log (Windows)
+```
+
+the log file contains logs from the extension, MCP and WS server together with all CDP events. the file is recreated every time the server starts. for debugging internal playwriter errors, read this file with grep/rg to find relevant lines.
+
+if you find a bug, you can create a gh issue using `gh issue create -R remorses/playwriter --title title --body body`. ask for user confirmation before doing this.

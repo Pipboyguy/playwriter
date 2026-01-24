@@ -232,6 +232,17 @@ npx -y playwriter serve --host 127.0.0.1
 const browser = await chromium.connectOverCDP('http://127.0.0.1:19988')
 ```
 
+## Troubleshooting
+
+View relay server logs to debug issues:
+
+```bash
+playwriter logfile  # prints the log file path
+# typically: /tmp/playwriter/relay-server.log (Linux/macOS)
+```
+
+The log file contains extension, MCP and WebSocket server logs with all CDP events. It's recreated on each server start.
+
 ## Known Issues
 
 - If all pages return `about:blank`, restart Chrome (Chrome bug in `chrome.debugger` API)

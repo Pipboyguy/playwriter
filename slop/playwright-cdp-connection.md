@@ -389,7 +389,7 @@ If `Target.attachedToTarget` is sent with empty URL:
 
 ### Debugging empty URL issues
 
-Check the logs at `~/.config/opencode/playwriter.log` for:
+Check the relay server logs (run `playwriter logfile` to get the path) for:
 ```
 WARNING: Target.attachedToTarget sent with empty URL
 WARNING: Target.attachedToTarget received with empty URL

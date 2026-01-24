@@ -311,6 +311,12 @@ cli
     })
   })
 
+cli
+  .command('logfile', 'Print the path to the relay server log file')
+  .action(() => {
+    console.log(LOG_FILE_PATH)
+  })
+
 cli.help()
 cli.version(VERSION)
 
