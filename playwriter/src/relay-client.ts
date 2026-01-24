@@ -29,6 +29,47 @@ export async function getRelayServerVersion(port: number = RELAY_PORT): Promise<
   }
 }
 
+export async function getExtensionStatus(port: number = RELAY_PORT): Promise<{ connected: boolean; activeTargets: number } | null> {
+  try {
+    const response = await fetch(`http://127.0.0.1:${port}/extension/status`, {
+      signal: AbortSignal.timeout(500),
+    })
+    if (!response.ok) {
+      return null
+    }
+    return await response.json() as { connected: boolean; activeTargets: number }
+  } catch {
+    return null
+  }
+}
+
+/**
+ * Wait for the extension to connect to the relay server.
+ * Returns true if connected within timeout, false otherwise.
+ */
+export async function waitForExtension(options: {
+  port?: number
+  timeoutMs?: number
+  logger?: { log: (...args: any[]) => void }
+} = {}): Promise<boolean> {
+  const { port = RELAY_PORT, timeoutMs = 5000, logger } = options
+  const startTime = Date.now()
+
+  logger?.log('Waiting for extension to connect...')
+
+  while (Date.now() - startTime < timeoutMs) {
+    const status = await getExtensionStatus(port)
+    if (status?.connected) {
+      logger?.log('Extension connected')
+      return true
+    }
+    await sleep(200)
+  }
+
+  logger?.log('Extension did not connect within timeout')
+  return false
+}
+
 async function killRelayServer(port: number): Promise<void> {
   try {
     await killPortProcess(port)
@@ -95,12 +136,14 @@ export async function ensureRelayServer(options: EnsureRelayServerOptions = {}):
     logger?.log('CDP relay server not running, starting it...')
   }
 
-  const dev = process.env.PLAYWRITER_NODE_ENV === 'development'
-  const scriptPath = dev
-    ? path.resolve(__dirname, '../src/start-relay-server.ts')
+  // Detect if we're running from source (.ts) or compiled (.js)
+  // This handles: tsx, vite-node, ts-node, or direct node on compiled output
+  const isRunningFromSource = __filename.endsWith('.ts')
+  const scriptPath = isRunningFromSource
+    ? path.resolve(__dirname, './start-relay-server.ts')
     : path.resolve(__dirname, './start-relay-server.js')
 
-  const serverProcess = spawn(dev ? 'tsx' : process.execPath, [scriptPath], {
+  const serverProcess = spawn(isRunningFromSource ? 'tsx' : process.execPath, [scriptPath], {
     detached: true,
     stdio: 'ignore',
     env: { ...process.env, ...additionalEnv },
@@ -108,14 +151,19 @@ export async function ensureRelayServer(options: EnsureRelayServerOptions = {}):
 
   serverProcess.unref()
 
+
   for (let i = 0; i < 10; i++) {
     await sleep(500)
     const newVersion = await getRelayServerVersion(RELAY_PORT)
     if (newVersion) {
       logger?.log('CDP relay server started successfully')
+      await sleep(1000)
       return
     }
   }
+
+
+
 
   throw new Error(`Failed to start CDP relay server after 5 seconds. Check logs at: ${LOG_FILE_PATH}`)
 }

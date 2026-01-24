@@ -2,7 +2,7 @@
 
 import { cac } from '@xmorse/cac'
 import { VERSION, LOG_FILE_PATH } from './utils.js'
-import { ensureRelayServer, RELAY_PORT } from './relay-client.js'
+import { ensureRelayServer, RELAY_PORT, waitForExtension } from './relay-client.js'
 
 const cliRelayEnv = { PLAYWRITER_AUTO_ENABLE: '1' }
 
@@ -57,6 +57,11 @@ async function executeCode(options: {
   // Ensure relay server is running (only for local)
   if (!host && !process.env.PLAYWRITER_HOST) {
     await ensureRelayServer({ logger: console, env: cliRelayEnv })
+    // Wait for extension to reconnect after server (re)start
+    const connected = await waitForExtension({ logger: console, timeoutMs: 10000 })
+    if (!connected) {
+      console.error('Warning: Extension not connected. Commands may fail.')
+    }
   }
 
   // Session is required
