@@ -7,6 +7,7 @@ import { spawn } from 'node:child_process'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { killPortProcess } from 'kill-port-process'
+import pc from 'picocolors'
 import { VERSION, sleep, LOG_FILE_PATH } from './utils.js'
 
 const __filename = fileURLToPath(import.meta.url)
@@ -55,18 +56,18 @@ export async function waitForExtension(options: {
   const { port = RELAY_PORT, timeoutMs = 5000, logger } = options
   const startTime = Date.now()
 
-  logger?.log('Waiting for extension to connect...')
+  logger?.log(pc.dim('Waiting for extension to connect...'))
 
   while (Date.now() - startTime < timeoutMs) {
     const status = await getExtensionStatus(port)
     if (status?.connected) {
-      logger?.log('Extension connected')
+      logger?.log(pc.green('Extension connected'))
       return true
     }
     await sleep(200)
   }
 
-  logger?.log('Extension did not connect within timeout')
+  logger?.log(pc.yellow('Extension did not connect within timeout'))
   return false
 }
 
@@ -126,14 +127,14 @@ export async function ensureRelayServer(options: EnsureRelayServerOptions = {}):
 
   if (serverVersion !== null) {
     if (restartOnVersionMismatch) {
-      logger?.log(`CDP relay server version mismatch (server: ${serverVersion}, client: ${VERSION}), restarting...`)
+      logger?.log(pc.yellow(`CDP relay server version mismatch (server: ${serverVersion}, client: ${VERSION}), restarting...`))
       await killRelayServer(RELAY_PORT)
     } else {
       // Server is running but different version, just use it
       return
     }
   } else {
-    logger?.log('CDP relay server not running, starting it...')
+    logger?.log(pc.dim('CDP relay server not running, starting it...'))
   }
 
   // Detect if we're running from source (.ts) or compiled (.js)
@@ -156,7 +157,7 @@ export async function ensureRelayServer(options: EnsureRelayServerOptions = {}):
     await sleep(500)
     const newVersion = await getRelayServerVersion(RELAY_PORT)
     if (newVersion) {
-      logger?.log('CDP relay server started successfully')
+      logger?.log(pc.green('CDP relay server started successfully'))
       await sleep(1000)
       return
     }
