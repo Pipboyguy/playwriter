@@ -2,7 +2,7 @@ import { describe, it, beforeAll, afterAll } from 'vitest'
 import { Page } from 'playwright-core'
 import fs from 'node:fs'
 import path from 'node:path'
-import { compactSnapshot, interactiveSnapshot, getAriaSnapshot } from './aria-snapshot.js'
+import { compactSnapshot, interactiveSnapshot, deduplicateSnapshot, getAriaSnapshot } from './aria-snapshot.js'
 import { setupTestContext, cleanupTestContext, type TestContext } from './test-utils.js'
 
 const TEST_PORT = 19986
@@ -33,6 +33,7 @@ describe('aria-snapshot compression', () => {
     { name: 'raw', transform: (s: string) => s },
     { name: 'compact', transform: (s: string) => compactSnapshot(s) },
     { name: 'interactive', transform: (s: string) => interactiveSnapshot(s) },
+    { name: 'interactive-dedup', transform: (s: string) => deduplicateSnapshot(interactiveSnapshot(s)) },
     { name: 'interactive-flat', transform: (s: string) => interactiveSnapshot(s, { keepStructure: false }) },
   ]
 

@@ -20,7 +20,8 @@ import { Editor } from './editor.js'
 import { getStylesForLocator, formatStylesAsText, type StylesResult } from './styles.js'
 import { getReactSource, type ReactSourceLocation } from './react-source.js'
 import { ScopedFS } from './scoped-fs.js'
-import { screenshotWithAccessibilityLabels, type ScreenshotResult } from './aria-snapshot.js'
+import { screenshotWithAccessibilityLabels, formatSnapshot, DEFAULT_SNAPSHOT_FORMAT, type ScreenshotResult, type SnapshotFormat } from './aria-snapshot.js'
+export type { SnapshotFormat }
 import { getCleanHTML, type GetCleanHTMLOptions } from './clean-html.js'
 
 const __filename = fileURLToPath(import.meta.url)
@@ -405,12 +406,16 @@ export class PlaywrightExecutor {
         page: Page
         search?: string | RegExp
         showDiffSinceLastCall?: boolean
+        /** Snapshot format: 'raw', 'compact', 'interactive', 'interactive-dedup' (default) */
+        format?: SnapshotFormat
       }) => {
-        const { page: targetPage, search, showDiffSinceLastCall = false } = options
+        const { page: targetPage, search, showDiffSinceLastCall = false, format = DEFAULT_SNAPSHOT_FORMAT } = options
         if ((targetPage as any)._snapshotForAI) {
           const snapshot = await (targetPage as any)._snapshotForAI()
           const rawStr = typeof snapshot === 'string' ? snapshot : JSON.stringify(snapshot, null, 2)
-          const snapshotStr = rawStr.toWellFormed?.() ?? rawStr
+          const sanitizedStr = rawStr.toWellFormed?.() ?? rawStr
+          // Apply format transformation
+          const snapshotStr = formatSnapshot(sanitizedStr, format, this.logger)
           
           if (showDiffSinceLastCall) {
             const previousSnapshot = this.lastSnapshots.get(targetPage)

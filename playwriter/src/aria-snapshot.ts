@@ -8,6 +8,71 @@ const sharpPromise = import('sharp')
   .catch(() => { return null })
 
 // ============================================================================
+// Aria Snapshot Format Documentation
+// ============================================================================
+//
+// This module processes accessibility snapshots from Playwright's _snapshotForAI() method.
+// The expected format is a YAML-like tree structure:
+//
+// ```
+// - role "accessible name" [ref=eXX] [cursor=pointer] [active]:
+//   - childRole "child name" [ref=eYY]:
+//     - /url: https://example.com
+//     - text: "raw text content"
+// ```
+//
+// Key format assumptions:
+// - Lines start with "- " followed by a role name (e.g., link, button, row, cell)
+// - Accessible names are in double quotes: "name"
+// - When names contain colons, the whole entry is single-quoted: - 'role "name: with colon"':
+// - Element refs are in brackets: [ref=e123]
+// - Attributes like [cursor=pointer], [active] may appear after the name
+// - Child elements are indented (2 spaces per level)
+// - URL metadata appears as: - /url: https://...
+// - Raw text appears as: - text: "content"
+//
+// If Playwright changes this format, the parsing functions below will need updates.
+// ============================================================================
+
+// ============================================================================
+// Snapshot Format Types and Processing
+// ============================================================================
+
+export type SnapshotFormat = 'raw' | 'compact' | 'interactive' | 'interactive-dedup'
+
+export const DEFAULT_SNAPSHOT_FORMAT: SnapshotFormat = 'interactive-dedup'
+
+/**
+ * Apply a snapshot format transformation with error handling.
+ * If processing fails, logs the error and returns the raw snapshot.
+ */
+export function formatSnapshot(
+  snapshot: string,
+  format: SnapshotFormat,
+  logger?: { error: (...args: unknown[]) => void }
+): string {
+  if (format === 'raw') {
+    return snapshot
+  }
+
+  try {
+    switch (format) {
+      case 'compact':
+        return compactSnapshot(snapshot)
+      case 'interactive':
+        return interactiveSnapshot(snapshot)
+      case 'interactive-dedup':
+        return deduplicateSnapshot(interactiveSnapshot(snapshot))
+      default:
+        return snapshot
+    }
+  } catch (error) {
+    logger?.error('[aria-snapshot] Failed to apply format', format, error)
+    return snapshot
+  }
+}
+
+// ============================================================================
 // Snapshot Compression Functions
 // ============================================================================
 
@@ -276,6 +341,187 @@ function collapseGenericWrappers(snapshot: string): string {
 
 function cleanSnapshotLine(line: string): string {
   return line.replace(/ \[cursor=pointer\]/g, '').replace(/ \[active\]/g, '')
+}
+
+interface SnapshotNode {
+  indent: number
+  role: string
+  name: string | null
+  ref: string | null
+  rawLine: string
+  children: SnapshotNode[]
+}
+
+/**
+ * Remove duplicate text from parent elements when the same text appears in descendants.
+ * For example, if a row's name is "upvote | story title" and it contains children with
+ * those exact names, the parent's name is redundant and can be removed.
+ */
+export function deduplicateSnapshot(snapshot: string): string {
+  const lines = snapshot.split('\n')
+  const nodes: SnapshotNode[] = []
+  const stack: SnapshotNode[] = []
+
+  // Parse lines into nodes with tree structure
+  for (const line of lines) {
+    if (!line.trim()) {
+      continue
+    }
+
+    const indent = line.length - line.trimStart().length
+    const parsed = parseSnapshotLine(line)
+
+    const node: SnapshotNode = {
+      indent,
+      role: parsed.role,
+      name: parsed.name,
+      ref: parsed.ref,
+      rawLine: line,
+      children: [],
+    }
+
+    // Pop stack until we find parent (lower indent)
+    while (stack.length > 0 && stack[stack.length - 1].indent >= indent) {
+      stack.pop()
+    }
+
+    if (stack.length > 0) {
+      stack[stack.length - 1].children.push(node)
+    } else {
+      nodes.push(node)
+    }
+
+    stack.push(node)
+  }
+
+  // Process each root node
+  for (const node of nodes) {
+    deduplicateNode(node)
+  }
+
+  // Rebuild snapshot
+  const result: string[] = []
+  for (const node of nodes) {
+    rebuildLines(node, result)
+  }
+
+  return result.join('\n')
+}
+
+function parseSnapshotLine(line: string): { role: string; name: string | null; ref: string | null } {
+  let trimmed = line.trim()
+
+  // Handle single-quote wrapped lines: - 'row "name with: colon"':
+  // These occur when the name contains a colon
+  if (trimmed.startsWith("- '") && trimmed.includes("':")) {
+    // Extract content between - ' and ':
+    const innerMatch = trimmed.match(/^-\s+'(.+)'/)
+    if (innerMatch) {
+      trimmed = '- ' + innerMatch[1]
+    }
+  }
+
+  // Match: - role "name" [ref=xxx]: or - role [ref=xxx]: or - role "name": or - role:
+  const match = trimmed.match(/^-\s+(\w+)(?:\s+"([^"]*)")?(?:\s+\[ref=(\w+)\])?/)
+
+  if (!match) {
+    return { role: '', name: null, ref: null }
+  }
+
+  return {
+    role: match[1],
+    name: match[2] || null,
+    ref: match[3] || null,
+  }
+}
+
+function collectDescendantNames(node: SnapshotNode): Set<string> {
+  const names = new Set<string>()
+
+  for (const child of node.children) {
+    if (child.name) {
+      names.add(child.name)
+    }
+    // Recursively collect from grandchildren
+    for (const name of collectDescendantNames(child)) {
+      names.add(name)
+    }
+  }
+
+  return names
+}
+
+function isNameRedundant(name: string, descendantNames: Set<string>): boolean {
+  if (descendantNames.size === 0) {
+    return false
+  }
+
+  // Normalize the name - remove common separators and check if all parts exist in descendants
+  // Split by common separators: |, (, ), commas, and whitespace runs
+  const parts = name
+    .split(/[\|\(\),]+/)
+    .map((p) => p.trim())
+    .filter((p) => p.length > 0)
+
+  if (parts.length === 0) {
+    return false
+  }
+
+  // Check if each meaningful part is found in a descendant name
+  let matchedParts = 0
+  for (const part of parts) {
+    // Check if this part matches or is contained in any descendant name
+    for (const descName of descendantNames) {
+      if (descName === part || descName.includes(part) || part.includes(descName)) {
+        matchedParts++
+        break
+      }
+    }
+  }
+
+  // If most parts (>= 50%) are found in descendants, the name is redundant
+  return matchedParts >= parts.length * 0.5
+}
+
+function deduplicateNode(node: SnapshotNode): void {
+  // First, recursively process children
+  for (const child of node.children) {
+    deduplicateNode(child)
+  }
+
+  // Then check if this node's name is redundant
+  if (node.name && node.children.length > 0) {
+    const descendantNames = collectDescendantNames(node)
+    if (isNameRedundant(node.name, descendantNames)) {
+      node.name = null
+    }
+  }
+}
+
+function rebuildLines(node: SnapshotNode, result: string[]): void {
+  // Rebuild the line with potentially stripped name
+  const indent = ' '.repeat(node.indent)
+  let line = `${indent}- ${node.role}`
+
+  if (node.name) {
+    // Use double quotes, escape if needed
+    const escaped = node.name.replace(/"/g, '\\"')
+    line += ` "${escaped}"`
+  }
+
+  if (node.ref) {
+    line += ` [ref=${node.ref}]`
+  }
+
+  if (node.children.length > 0) {
+    line += ':'
+  }
+
+  result.push(line)
+
+  for (const child of node.children) {
+    rebuildLines(child, result)
+  }
 }
 
 // ============================================================================
