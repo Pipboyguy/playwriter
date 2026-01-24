@@ -73,7 +73,7 @@ playwriter -e "console.log(state.users)"
 **Intercept network requests:**
 ```bash
 playwriter -e "state.requests = []; page.on('response', r => { if (r.url().includes('/api/')) state.requests.push(r.url()) })"
-playwriter -e "await page.click('button'); await page.waitForLoadState('networkidle')"
+playwriter -e "await Promise.all([page.waitForResponse(r => r.url().includes('/api/')), page.click('button')])"
 playwriter -e "console.log(state.requests)"
 ```
 
