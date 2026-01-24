@@ -7,7 +7,7 @@
     </picture>
     <br/>
     <br/>
-    <p>Like Playwright MCP but via extension. 80% less context window. 10x more capable (full playwright API)</p>
+    <p>Like Playwright MCP but via extension + cli. No context window usage. 10x more capable (full playwright API)</p>
     <br/>
     <a href="https://chromewebstore.google.com/detail/playwriter-mcp/jfeammnjpkecdekppnclgkkffahnhfhe">
         <strong>Install Extension from Chrome Web Store</strong>
@@ -35,7 +35,7 @@
 3. **Add the Skill to Your Agent**
 
    ```bash
-   npx skills add remorses/playwriter
+   npx -y skills add remorses/playwriter
    ```
 
    This gives your AI agent the knowledge to use Playwriter via CLI commands.
@@ -45,7 +45,7 @@
 Once installed, your agent can control the browser:
 
 ```bash
-playwriter session new          # → 1
+playwriter session new # starts a new session with id 1. each session runs in separate stateful sandbox
 playwriter -s 1 -e "await page.goto('https://example.com')"
 playwriter -s 1 -e "console.log(await accessibilitySnapshot({ page }))"
 playwriter -s 1 -e "await page.locator('aria-ref=e5').click()"
