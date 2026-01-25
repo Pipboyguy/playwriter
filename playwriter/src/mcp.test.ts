@@ -1321,6 +1321,37 @@ describe('MCP Server Tests', () => {
         await page.close()
     }, 60000)
 
+    it('should navigate to notion without hanging', async () => {
+        const browserContext = getBrowserContext()
+        const serviceWorker = await getExtensionServiceWorker(browserContext)
+
+        const page = await browserContext.newPage()
+        const initialUrl = 'https://example.com/notion-repro'
+        await page.goto(initialUrl)
+        await page.bringToFront()
+
+        await serviceWorker.evaluate(async () => {
+            await globalThis.toggleExtensionForActiveTab()
+        })
+
+        await new Promise(r => setTimeout(r, 100))
+
+        const browser = await chromium.connectOverCDP(getCdpUrl({ port: TEST_PORT }))
+        const cdpPage = browser.contexts()[0].pages().find(p => p.url() === initialUrl)
+        expect(cdpPage).toBeDefined()
+
+        const response = await cdpPage!.goto('https://www.notion.so', { waitUntil: 'domcontentloaded', timeout: 20000 })
+
+        const currentUrl = cdpPage!.url()
+        const responseUrl = response?.url() ?? ''
+        expect(responseUrl).toMatch(/notion\.(so|com)/)
+        expect(currentUrl).toMatch(/notion\.(so|com)/)
+        expect(await cdpPage!.evaluate(() => document.readyState)).not.toBe('loading')
+
+        await browser.close()
+        await page.close()
+    }, 60000)
+
     it('should maintain correct page.url() with iframe-heavy pages', async () => {
         const browserContext = getBrowserContext()
         const serviceWorker = await getExtensionServiceWorker(browserContext)
