@@ -50,11 +50,10 @@ make sure you have tsx installed globally: `pnpm i -g tsx`
 to test CLI changes without publishing:
 
 ```bash
-cd playwriter
-tsx src/cli.ts -e "await page.goto('https://example.com')"
-tsx src/cli.ts -e "console.log(await accessibilitySnapshot({ page }))"
-tsx src/cli.ts session new
-tsx src/cli.ts -s 1 -e "await page.click('button')"
+tsx playwriter/src/cli.ts -e "await page.goto('https://example.com')"
+tsx playwriter/src/cli.ts -e "console.log(await accessibilitySnapshot({ page }))"
+tsx playwriter/src/cli.ts session new
+tsx playwriter/src/cli.ts -s 1 -e "await page.click('button')"
 ```
 
 ### reloading extension during development
@@ -62,22 +61,20 @@ tsx src/cli.ts -s 1 -e "await page.click('button')"
 after making changes to extension code:
 
 ```bash
-cd extension
-pnpm reload  # builds and opens chrome://extensions page
+pnpm --filter mcp-extension reload  # builds and opens chrome://extensions page
 ```
 
 then click the reload button on the extension card in Chrome. the extension has a stable dev ID (`pebbngnfojnignonigcnkdilknapkgid`) so you don't need to reconfigure anything.
 
 ### testing
 
-run `cd playwriter && pnpm test` to test the extension and mcp and CDP directly in a chrome instance automated. with the extension loaded too.
-
 ```bash
-cd playwriter
 pnpm test              # run all tests (takes ~90 seconds)
 pnpm test -t "screenshot"  # run specific test by name
 pnpm test:watch        # watch mode
 ```
+
+tests run against a real Chrome instance with the extension loaded.
 
 the test script passes `-u` to update inline snapshots automatically.
 
