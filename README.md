@@ -17,7 +17,7 @@
 
 2. Click extension icon on a tab → turns green when connected
 
-3. Start automating the browser:
+3. Install the CLI and start automating the browser:
    ```bash
    npm i -g playwriter
    playwriter -s 1 -e "await page.goto('https://example.com')"
