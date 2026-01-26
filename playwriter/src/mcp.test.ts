@@ -70,7 +70,7 @@ describe('MCP Server Tests', () => {
         await serviceWorker.evaluate(async () => {
             await globalThis.toggleExtensionForActiveTab()
         })
-        await new Promise(r => setTimeout(r, 100))
+        await new Promise((r) => { setTimeout(r, 100) })
 
         const browser = await chromium.connectOverCDP(getCdpUrl({ port: TEST_PORT }))
         const cdpPage = browser.contexts()[0].pages().find(p => {
@@ -3767,12 +3767,18 @@ describe('Service Worker Target Tests', () => {
 
 describe('Auto-enable Tests', () => {
     let testCtx: TestContext | null = null
+    let client: Awaited<ReturnType<typeof createMCPClient>>['client']
+    let cleanup: (() => Promise<void>) | null = null
 
     // Set env var before any setup runs
     process.env.PLAYWRITER_AUTO_ENABLE = '1'
 
     beforeAll(async () => {
         testCtx = await setupTestContext({ port: TEST_PORT, tempDirPrefix: 'pw-auto-test-' })
+
+        const result = await createMCPClient({ port: TEST_PORT })
+        client = result.client
+        cleanup = result.cleanup
 
         // Disconnect all tabs to start with a clean state
         const serviceWorker = await getExtensionServiceWorker(testCtx.browserContext)
@@ -3784,7 +3790,8 @@ describe('Auto-enable Tests', () => {
 
     afterAll(async () => {
         delete process.env.PLAYWRITER_AUTO_ENABLE
-        await cleanupTestContext(testCtx)
+        await cleanupTestContext(testCtx, cleanup)
+        cleanup = null
         testCtx = null
     })
 
@@ -3834,5 +3841,50 @@ describe('Auto-enable Tests', () => {
         expect(title).toBe('Auto-created page')
 
         await browser.close()
+    }, 60000)
+
+    it('should auto-create a page when MCP executes with no connected pages', async () => {
+        const browserContext = getBrowserContext()
+        const serviceWorker = await getExtensionServiceWorker(browserContext)
+
+        await serviceWorker.evaluate(async () => {
+            await globalThis.disconnectEverything()
+        })
+        await new Promise(r => setTimeout(r, 100))
+
+        const tabCountBefore = await serviceWorker.evaluate(() => {
+            const state = globalThis.getExtensionState()
+            return state.tabs.size
+        })
+        expect(tabCountBefore).toBe(0)
+
+        const result = await client.callTool({
+            name: 'execute',
+            arguments: {
+                code: js`
+                    return { pageCount: context.pages().length, url: page.url() };
+                `,
+            },
+        })
+
+        expect((result as any).isError).toBeFalsy()
+        const text = (result as any).content[0].text
+        expect(text).toContain('pageCount')
+        expect(text).toContain('about:blank')
+
+        const tabCountAfter = await serviceWorker.evaluate(() => {
+            const state = globalThis.getExtensionState()
+            return state.tabs.size
+        })
+        expect(tabCountAfter).toBe(1)
+
+        await client.callTool({
+            name: 'execute',
+            arguments: {
+                code: js`
+                    await page.close();
+                `,
+            },
+        })
     }, 60000)
 })
