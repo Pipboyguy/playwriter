@@ -173,6 +173,9 @@ sometimes the user will ask you to debug an mcp issue. to do this you may want t
 
 if the problem was in the ws server you can restart that yourself killing process listening on 19988 and sending a new mcp call.
 
+## running playwriter cli locally
+
+to run the cli locally with your current changes call `tsx playwriter/src/cli.ts -e ...`. also make sure you kill process on 19988 first to make sure to use the latest relay executor code.
 
 ## playwright source code
 
@@ -191,7 +194,7 @@ ignore ./claude-extension. this is the source code of the Claude Chrome extensio
 
 you can find the logfile for playwriter executing `playwriter logfile`. read that then to understand issues happening and debug them
 
-the cdp log is a jsonl file (one json object per line). you can use jq to compress it. for example, list direction + method:
+ `playwriter logfile` also logs a jsonl file with all CDP commands and events being sent between extension, cli, mcp and relay. the cdp log is a jsonl file (one json object per line). you can use jq to process and read it efficiently. for example, list direction + method:
 
 ```bash
 jq -r '.direction + "\t" + (.message.method // "response")' /tmp/playwriter/cdp.jsonl | uniq -c
