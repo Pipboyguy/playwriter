@@ -247,7 +247,13 @@ playwriter logfile  # prints the log file path
 # typically: /tmp/playwriter/relay-server.log (Linux/macOS)
 ```
 
-The log file contains extension, MCP and WebSocket server logs with all CDP events. It's recreated on each server start.
+The relay log contains extension, MCP and WebSocket server logs. A separate CDP JSONL log is also created alongside it (see `playwriter logfile`). Both are recreated on each server start.
+
+Example: summarize CDP traffic counts by direction + method:
+
+```bash
+jq -r '.direction + "\t" + (.message.method // "response")' /tmp/playwriter/cdp.jsonl | uniq -c
+```
 
 ## Known Issues
 

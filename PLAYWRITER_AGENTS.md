@@ -188,3 +188,9 @@ ignore ./claude-extension. this is the source code of the Claude Chrome extensio
 ## reading playwriter logs
 
 you can find the logfile for playwriter executing `playwriter logfile`. read that then to understand issues happening and debug them
+
+the cdp log is a jsonl file (one json object per line). you can use jq to compress it. for example, list direction + method:
+
+```bash
+jq -r '.direction + "\t" + (.message.method // "response")' /tmp/playwriter/cdp.jsonl | uniq -c
+```

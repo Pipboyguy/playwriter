@@ -1,5 +1,6 @@
 import { startPlayWriterCDPRelayServer } from './cdp-relay.js'
 import { createFileLogger } from './create-logger.js'
+import { LOG_CDP_FILE_PATH } from './utils.js'
 
 process.title = 'playwriter-ws-server'
 
@@ -25,6 +26,7 @@ export async function startServer({ port = 19988, host = '127.0.0.1', token }: {
 
   console.log('CDP Relay Server running. Press Ctrl+C to stop.')
   console.log('Logs are being written to:', logger.logFilePath)
+  console.log('CDP logs are being written to:', LOG_CDP_FILE_PATH)
 
   process.on('SIGINT', () => {
     console.log('\nShutting down...')

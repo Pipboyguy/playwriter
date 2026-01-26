@@ -10,6 +10,7 @@ import type { ExtensionMessage, ExtensionEventMessage } from './protocol.js'
 import pc from 'picocolors'
 import { EventEmitter } from 'node:events'
 import { VERSION } from './utils.js'
+import { createCdpLogger, type CdpLogEntry, type CdpLogger } from './cdp-log.js'
 
 type ConnectedTarget = {
   sessionId: string
@@ -69,9 +70,26 @@ export type RelayServer = {
   off<K extends keyof RelayServerEvents>(event: K, listener: RelayServerEvents[K]): void
 }
 
-export async function startPlayWriterCDPRelayServer({ port = 19988, host = '127.0.0.1', token, logger }: { port?: number; host?: string; token?: string; logger?: { log(...args: any[]): void; error(...args: any[]): void } } = {}): Promise<RelayServer> {
+export async function startPlayWriterCDPRelayServer({
+  port = 19988,
+  host = '127.0.0.1',
+  token,
+  logger,
+  cdpLogger,
+}: {
+  port?: number
+  host?: string
+  token?: string
+  logger?: { log(...args: any[]): void; error(...args: any[]): void }
+  cdpLogger?: CdpLogger
+} = {}): Promise<RelayServer> {
   const emitter = new EventEmitter()
   const connectedTargets = new Map<string, ConnectedTarget>()
+
+  const resolvedCdpLogger = cdpLogger || createCdpLogger()
+  const logCdpJson = (entry: CdpLogEntry) => {
+    resolvedCdpLogger.log(entry)
+  }
 
   const playwrightClients = new Map<string, PlaywrightClient>()
   let extensionWs: WSContext | null = null
@@ -179,6 +197,14 @@ export async function startPlayWriterCDPRelayServer({ port = 19988, host = '127.
       ? { ...message, __serverGenerated: true }
       : message
 
+    logCdpJson({
+      timestamp: new Date().toISOString(),
+      direction: 'to-playwright',
+      clientId,
+      source,
+      message: messageToSend,
+    })
+
     if ('method' in message) {
       logCdpMessage({
         direction: 'to-playwright',
@@ -211,6 +237,18 @@ export async function startPlayWriterCDPRelayServer({ port = 19988, host = '127.
 
     const id = ++extensionMessageId
     const message = { id, method, params }
+
+    if (method === 'forwardCDPCommand' && params?.method) {
+      logCdpJson({
+        timestamp: new Date().toISOString(),
+        direction: 'to-extension',
+        message: {
+          method: params.method,
+          sessionId: params.sessionId,
+          params: params.params,
+        },
+      })
+    }
 
     extensionWs.send(JSON.stringify(message))
 
@@ -584,6 +622,13 @@ export async function startPlayWriterCDPRelayServer({ port = 19988, host = '127.
 
         const { id, sessionId, method, params, source } = message
 
+        logCdpJson({
+          timestamp: new Date().toISOString(),
+          direction: 'from-playwright',
+          clientId,
+          message,
+        })
+
         logCdpMessage({
           direction: 'from-playwright',
           clientId,
@@ -819,6 +864,12 @@ export async function startPlayWriterCDPRelayServer({ port = 19988, host = '127.
           }
 
           const { method, params, sessionId } = extensionEvent.params
+
+           logCdpJson({
+             timestamp: new Date().toISOString(),
+             direction: 'from-extension',
+             message: { method, params, sessionId },
+           })
 
           logCdpMessage({
             direction: 'from-extension',

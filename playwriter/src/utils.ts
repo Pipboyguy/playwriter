@@ -9,7 +9,9 @@ export function getCdpUrl({ port = 19988, host = '127.0.0.1', token }: { port?: 
   return `ws://${host}:${port}/cdp/${id}${queryString}`
 }
 
-export const LOG_FILE_PATH = process.env.PLAYWRITER_LOG_FILE_PATH || path.join(os.tmpdir(), 'playwriter', 'relay-server.log')
+const LOG_BASE_DIR = os.platform() === 'win32' ? os.tmpdir() : '/tmp'
+export const LOG_FILE_PATH = process.env.PLAYWRITER_LOG_FILE_PATH || path.join(LOG_BASE_DIR, 'playwriter', 'relay-server.log')
+export const LOG_CDP_FILE_PATH = process.env.PLAYWRITER_CDP_LOG_FILE_PATH || path.join(path.dirname(LOG_FILE_PATH), 'cdp.jsonl')
 
 const packageJsonPath = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', 'package.json')
 export const VERSION = JSON.parse(fs.readFileSync(packageJsonPath, 'utf-8')).version as string

@@ -4,7 +4,7 @@ import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { cac } from '@xmorse/cac'
-import { VERSION, LOG_FILE_PATH } from './utils.js'
+import { VERSION, LOG_FILE_PATH, LOG_CDP_FILE_PATH } from './utils.js'
 import { ensureRelayServer, RELAY_PORT, waitForExtension } from './relay-client.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
@@ -299,6 +299,7 @@ cli
     console.log(`  Port: ${RELAY_PORT}`)
     console.log(`  Token: ${token ? '(configured)' : '(none)'}`)
     console.log(`  Logs: ${logger.logFilePath}`)
+    console.log(`  CDP Logs: ${LOG_CDP_FILE_PATH}`)
     console.log('')
     console.log(`CDP endpoint: http://${options.host}:${RELAY_PORT}${token ? '?token=<token>' : ''}`)
     console.log('')
@@ -320,7 +321,8 @@ cli
 cli
   .command('logfile', 'Print the path to the relay server log file')
   .action(() => {
-    console.log(LOG_FILE_PATH)
+    console.log(`relay: ${LOG_FILE_PATH}`)
+    console.log(`cdp: ${LOG_CDP_FILE_PATH}`)
   })
 
 cli

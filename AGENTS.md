@@ -189,7 +189,13 @@ ignore ./claude-extension. this is the source code of the Claude Chrome extensio
 
 ## reading playwriter logs
 
-you can find the logfile for playwriter with `playwriter logfile`
+you can find the logfile for playwriter executing `playwriter logfile`. read that then to understand issues happening and debug them
+
+the cdp log is a jsonl file (one json object per line). you can use jq to compress it. for example, list direction + method:
+
+```bash
+jq -r '.direction + "\t" + (.message.method // "response")' /tmp/playwriter/cdp.jsonl | uniq -c
+```
 
 # core guidelines
 
@@ -226,6 +232,7 @@ you can open files when i ask me "open in zed the line where ..." using the comm
 # typescript
 
 - ALWAYS use normal imports instead of dynamic imports, unless there is an issue with es module only packages and you are in a commonjs package (this is rare).
+- when throwing errors always use clause instead of error inside message: `new Error("wrapping error", { cause: e })` instead of `new Error(\`wrapping error ${e}\`)`
 
 - use a single object argument instead of multiple positional args: use object arguments for new typescript functions if the function would accept more than one argument, so it is more readable, ({a,b,c}) instead of (a,b,c). this way you can use the object as a sort of named argument feature, where order of arguments does not matter and it's easier to discover parameters.
 
@@ -323,6 +330,8 @@ remember to always add the explicit type to avoid unexpected type inference.
 
 DO `import fs from 'fs'; fs.writeFileSync(...)`
 DO NOT `import { writeFileSync } from 'fs';`
+
+- NEVER pass a string to abortController.abort(). instead if you want to pass a reason always pass an Error instance. like `controller.abort(new Error('reason'))`. This way catch blocks receive an Error instance and not something else.
 
 # package manager: pnpm with workspace
 
