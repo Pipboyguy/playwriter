@@ -8,6 +8,7 @@ import crypto from 'node:crypto'
 import fs from 'node:fs'
 import path from 'node:path'
 import os from 'node:os'
+import util from 'node:util'
 import { createRequire } from 'node:module'
 import { fileURLToPath } from 'node:url'
 import vm from 'node:vm'
@@ -376,10 +377,7 @@ export class PlaywrightExecutor {
       logs.forEach(({ method, args }) => {
         const formattedArgs = args
           .map((arg) => {
-            if (typeof arg === 'object') {
-              return JSON.stringify(arg, null, 2)
-            }
-            return String(arg)
+            return util.inspect(arg, { depth: 4, colors: false, maxArrayLength: 100, breakLength: 80 })
           })
           .join(' ')
         text += `[${method}] ${formattedArgs}\n`
